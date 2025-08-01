@@ -1,0 +1,38 @@
+﻿@model AddMeaningToGroupViewModel
+@{
+    ViewBag.Title = "Add Meaning to Group";
+}
+
+<h2>Add Meaning to Group</h2>
+<h2>ViewBag.wordId</h2>
+<form asp-controller="GroupWords" asp-action="AddMeaningToGroup" asp-route-groupId="@ViewBag.groupId" method="post">
+    <input type="hidden" asp-for="GroupId" />
+
+    <div class="form-group">
+        <label asp-for="MeaningText"></label>
+        <input asp-for="MeaningText" class="form-control" />
+        <span asp-validation-for="MeaningText" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Language"></label>
+        <input asp-for="Language" class="form-control" />
+        <span asp-validation-for="Language" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Notes"></label>
+        <textarea asp-for="Notes" class="form-control"></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Add Meaning to Group</button>
+</form>
+
+<a asp-action="Details" asp-controller="GroupWords" asp-route-id="@Model.GroupId" class="btn btn-secondary">Cancel</a>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

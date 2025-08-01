@@ -1,0 +1,50 @@
+﻿@model CreateGroupViewModel
+
+<h2>Create Group as Child</h2>
+
+<form asp-action="CreateGroupAsChild" asp-route-wordId="@ViewBag.WordId" method="post">
+    <input type="hidden" asp-for="ParentGroupID" />
+
+    <div class="form-group">
+        <label asp-for="NewGroupName" class="control-label"></label>
+        <input asp-for="NewGroupName" class="form-control" required />
+        <span asp-validation-for="NewGroupName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="OriginLanguage" class="control-label"></label>
+        <input asp-for="OriginLanguage" class="form-control" />
+        <span asp-validation-for="OriginLanguage" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="EtymologyWord" class="control-label"></label>
+        <input asp-for="EtymologyWord" class="form-control" />
+        <span asp-validation-for="EtymologyWord" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Etymology" class="control-label"></label>
+        <input asp-for="Etymology" class="form-control" />
+        <span asp-validation-for="Etymology" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Notes" class="control-label"></label>
+        <textarea asp-for="Notes" class="form-control"></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IsCompound"></label>
+        <select asp-for="IsCompound" class="form-control">
+            <option value="">Relation</option> <!-- Will be treated as null -->
+            <option value="true">Compound</option> <!-- Will be treated as true -->
+            <option value="false">Derived</option> <!-- Will be treated as false -->
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create Group</button>
+</form>
+
+<a asp-action="Index">Back to List</a>

@@ -1,0 +1,495 @@
+@model Example
+
+@{
+    ViewData["Title"] = "Example Details";
+}
+
+<h1>Example Details</h1>
+
+<div>
+    <hr />
+    
+    <!-- Hidden field for example ID -->
+    <input type="hidden" id="example-id" value="@Model.ID" />
+
+    <!-- Add anti-forgery token -->
+    @Html.AntiForgeryToken()
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Example Information</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Example Text</dt>
+                <dd class="col-sm-9">
+                    <div class="bidi-text" dir="auto">@Model.ExampleText</div>
+                </dd>
+
+                <dt class="col-sm-3">Language</dt>
+                <dd class="col-sm-9">@Model.Language</dd>
+
+                <dt class="col-sm-3">Reference</dt>
+                <dd class="col-sm-9">@Model.Reference</dd>
+
+                <dt class="col-sm-3">Notes</dt>
+                <dd class="col-sm-9">
+                    <div class="bidi-text" dir="auto">@Model.Notes</div>
+                </dd>
+
+                <dt class="col-sm-3">Pronunciation</dt>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrEmpty(Model.Pronunciation))
+                    {
+                        <div class="current-audio">
+                            <h5>Current Pronunciation:</h5>
+                            @{
+                                var fileId = "";
+                                if (Model.Pronunciation.Contains("/file/d/"))
+                                {
+                                    var match = System.Text.RegularExpressions.Regex.Match(Model.Pronunciation, @"/file/d/([a-zA-Z0-9-_]+)");
+                                    fileId = match.Success ? match.Groups[1].Value : "";
+                                }
+                                else if (Model.Pronunciation.Contains("id="))
+                                {
+                                    var match = System.Text.RegularExpressions.Regex.Match(Model.Pronunciation, @"id=([a-zA-Z0-9-_]+)");
+                                    fileId = match.Success ? match.Groups[1].Value : "";
+                                }
+
+                                var directDownloadUrl = !string.IsNullOrEmpty(fileId) ? $"https://drive.google.com/uc?export=download&id={fileId}" : Model.Pronunciation;
+                                var embedUrl = !string.IsNullOrEmpty(fileId) ? $"https://drive.google.com/file/d/{fileId}/preview" : Model.Pronunciation;
+                            }
+                            
+                            <!-- Main audio element (may not work in all browsers) -->
+                            <audio controls class="mb-2" preload="metadata">
+                                <source src="@directDownloadUrl" type="audio/wav">
+                                Your browser does not support the audio element.
+                            </audio>
+                            
+                            <!-- Exact iframe implementation from Word Details -->
+                            <div class="mt-2">
+                                <small class="text-muted">If audio doesn't play above, try:</small><br>
+                                <iframe src="@embedUrl" width="100%" height="60" frameborder="0"></iframe>
+                            </div>
+                            
+                            <!-- Download and delete buttons -->
+                            <div class="mt-2">
+                                <a href="@directDownloadUrl" class="btn btn-sm btn-outline-secondary" download>
+                                    <i class="bi bi-download"></i> Download Audio
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteExamplePronunciation()">
+                                    <i class="bi bi-trash"></i> Delete Pronunciation
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No pronunciation recorded</p>
+                    }
+
+                    <!-- Keep your existing recording controls below this point -->
+                    <div class="mt-3">
+                        <h5>Record New Pronunciation:</h5>
+                        <div id="recorder-controls" style="display: none;">
+                            <button type="button" id="record-btn" class="btn btn-primary" onclick="startRecording()">
+                                <i class="bi bi-mic"></i> Start Recording
+                            </button>
+                            <button type="button" id="stop-btn" class="btn btn-danger" onclick="stopRecording()" style="display: none;">
+                                <i class="bi bi-stop"></i> Stop Recording
+                            </button>
+                            <span id="recording-indicator" class="text-danger ms-2" style="display: none;">
+                                <i class="bi bi-record-circle-fill"></i> Recording...
+                                <span id="recording-timer">0:00</span>
+                            </span>
+                        </div>
+                        
+                        <!-- Preview area -->
+                        <div id="pronunciation-preview" class="mt-3"></div>
+                        
+                        <!-- Initialize button for browsers that need explicit permission -->
+                        <button type="button" class="btn btn-info btn-sm" onclick="initializeRecorder()">
+                            <i class="bi bi-mic-fill"></i> Enable Microphone
+                        </button>
+                    </div>
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Related Word and Meaning -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Related Information</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Related Word</dt>
+                <dd class="col-sm-9">
+                    @if (Model.WordMeaning?.Word != null)
+                    {
+                        <a asp-action="Details" asp-route-id="@Model.WordMeaning.WordID">
+                            @Model.WordMeaning.Word.Word_text
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Not available</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Related Meaning</dt>
+                <dd class="col-sm-9">
+                    @if (Model.WordMeaning?.Meaning != null)
+                    {
+                        @Model.WordMeaning.Meaning.MeaningText
+                    }
+                    else
+                    {
+                        <span class="text-muted">Not available</span>
+                    }
+                </dd>
+                
+                @if (Model.ParentExample != null)
+                {
+                    <dt class="col-sm-3">Parent Example</dt>
+                    <dd class="col-sm-9">
+                        <a asp-action="ExampleDetails" asp-route-id="@Model.ParentExample.ID">
+                            @Model.ParentExample.ExampleText
+                        </a>
+                    </dd>
+                }
+            </dl>
+        </div>
+    </div>
+
+    <!-- Child Examples Section -->
+    @if (Model.ChildExamples != null && Model.ChildExamples.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>Translations</h4>
+                <a asp-action="CreateChildExample" 
+                   asp-route-parentExampleId="@Model.ID"
+                   asp-route-wordId="@Model.WordMeaning?.WordID"
+                   class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add Translation
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Example</th>
+                                <th>Reference</th>
+                                <th>Pronunciation</th>
+                                <th>Notes</th>
+                                <th>Language</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var childExample in Model.ChildExamples)
+                            {
+                                <tr>
+                                    <td>@childExample.ExampleText</td>
+                                    <td>@childExample.Reference</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(childExample.Pronunciation))
+                                        {
+                                            <i class="bi bi-volume-up text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-volume-mute text-muted"></i>
+                                        }
+                                    </td>
+                                    <td>@childExample.Notes</td>
+                                    <td>@childExample.Language</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a asp-action="ExampleDetails" asp-route-id="@childExample.ID"
+                                               class="btn btn-info btn-sm" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-action="EditChildExample" 
+                                               asp-route-id="@childExample.ID" 
+                                               class="btn btn-outline-primary btn-sm" title="Edit">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <form asp-action="DeleteExample" method="post" style="display:inline;">
+                                                <input type="hidden" name="id" value="@childExample.ID" />
+                                                <button type="submit" 
+                                                        class="btn btn-outline-danger btn-sm" 
+                                                        onclick="return confirm('Are you sure?');" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div>
+        <a asp-action="EditExample" asp-route-id="@Model.ID" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        @if (Model.WordMeaning?.WordID != null)
+        {
+            <a asp-action="Details" asp-route-id="@Model.WordMeaning.WordID" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Word
+            </a>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Audio recording variables
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingTimer;
+        let recordingDuration = 0;
+        
+        function initializeRecorder() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                console.log('Initializing audio recorder...');
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function(stream) {
+                        document.getElementById('recorder-controls').style.display = 'block';
+                        
+                        // Try to create a MediaRecorder with WAV format
+                        try {
+                            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/wav' });
+                            console.log('WAV recording initialized');
+                        } catch (e) {
+                            // Fallback to default format if WAV is not supported
+                            console.warn('WAV recording not supported, falling back to default format');
+                            mediaRecorder = new MediaRecorder(stream);
+                        }
+                        
+                        // Event handler for when data is available
+                        mediaRecorder.ondataavailable = function(e) {
+                            audioChunks.push(e.data);
+                        };
+                        
+                        // Event handler for when recording stops
+                        mediaRecorder.onstop = function() {
+                            // Create WAV blob if possible, otherwise use browser's default format
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            
+                            // Show audio preview
+                            showRecordingPreview(audioUrl);
+                        };
+                        
+                        console.log('Audio recorder initialized with MIME type:', mediaRecorder.mimeType);
+                    })
+                    .catch(function(err) {
+                        console.error('Error initializing audio recorder:', err);
+                        alert('Error accessing your microphone: ' + err.message);
+                    });
+            } else {
+                alert("Your browser doesn't support audio recording.");
+            }
+        }
+        
+        function startRecording() {
+            audioChunks = [];
+            recordingDuration = 0;
+            mediaRecorder.start();
+            document.getElementById('record-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'inline-block';
+            document.getElementById('recording-indicator').style.display = 'inline-block';
+            
+            // Start the recording timer
+            recordingTimer = setInterval(function() {
+                recordingDuration++;
+                const minutes = Math.floor(recordingDuration / 60);
+                const seconds = recordingDuration % 60;
+                document.getElementById('recording-timer').textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }, 1000);
+            
+            console.log('Recording started');
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                document.getElementById('record-btn').style.display = 'inline-block';
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('recording-indicator').style.display = 'none';
+                
+                // Clear the recording timer
+                clearInterval(recordingTimer);
+                
+                console.log('Recording stopped');
+            }
+        }
+        
+        function showRecordingPreview(audioUrl) {
+            const previewArea = document.getElementById('pronunciation-preview');
+            previewArea.innerHTML = `
+                <div class="alert alert-info">
+                    <h5>Recording Preview:</h5>
+                    <audio controls class="w-100" src="${audioUrl}"></audio>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-success" onclick="uploadRecording()">
+                            <i class="bi bi-cloud-upload"></i> Save Recording
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="discardRecording()">
+                            <i class="bi bi-x-circle"></i> Discard
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function uploadRecording() {
+            if (audioChunks.length === 0) {
+                alert('No recording to upload');
+                return;
+            }
+            
+            const exampleId = document.getElementById('example-id').value;
+            // Create WAV blob
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append('audioFile', audioBlob, 'example_recording.wav');
+            formData.append('exampleId', exampleId);
+            
+            // Show loading state
+            const previewArea = document.getElementById('pronunciation-preview');
+            previewArea.innerHTML = `
+                <div class="alert alert-info">
+                    <h5>Uploading Recording...</h5>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated w-100" 
+                             role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            `;
+            
+            fetch('/Words/UploadExampleAudio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Upload response:', data);
+                if (data.success) {
+                    // Refresh the page to show the new recording
+                    window.location.reload();
+                } else {
+                    alert('Error uploading audio: ' + data.message);
+                    previewArea.innerHTML = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading audio:', error);
+                alert('Error uploading audio: ' + error);
+                previewArea.innerHTML = '';
+            });
+        }
+        
+        function discardRecording() {
+            // Clear the preview
+            document.getElementById('pronunciation-preview').innerHTML = '';
+            // Clear recording data
+            audioChunks = [];
+        }
+        
+        function deleteExamplePronunciation() {
+            if (!confirm('Are you sure you want to delete this pronunciation?')) {
+                return;
+            }
+
+            const exampleId = document.getElementById('example-id').value;
+            if (!exampleId) {
+                alert('Example ID not found');
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const formData = new FormData();
+            formData.append('exampleId', exampleId);
+            formData.append('__RequestVerificationToken', token);
+
+            fetch('/Words/DeleteExamplePronunciation', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh the page to show the pronunciation is deleted
+                    window.location.reload();
+                } else {
+                    alert('Error deleting pronunciation: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting pronunciation');
+            });
+        }
+
+
+        function updatePronunciationDisplay(pronunciationUrl) {
+    const container = document.getElementById('current-pronunciation');
+
+    if (pronunciationUrl) {
+        // Extract file ID from Google Drive URL
+        let fileId = '';
+        if (pronunciationUrl.includes('/file/d/')) {
+            const match = pronunciationUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+            fileId = match ? match[1] : '';
+        } else if (pronunciationUrl.includes('id=')) {
+            const match = pronunciationUrl.match(/id=([a-zA-Z0-9-_]+)/);
+            fileId = match ? match[1] : '';
+        }
+
+        const directDownloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : pronunciationUrl;
+        const embedUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : pronunciationUrl;
+
+        container.innerHTML = `
+            <div class="current-audio">
+                <h5>Current Pronunciation:</h5>
+                
+                <!-- Main audio player -->
+                <audio controls class="mb-2" preload="metadata">
+                    <source src="${directDownloadUrl}" type="audio/wav">
+                    Your browser does not support the audio element.
+                </audio>
+                
+                <!-- Exact iframe implementation from Word Details -->
+                <div class="mt-2">
+                    <small class="text-muted">If audio doesn't play above, try:</small><br>
+                    <iframe src="${embedUrl}" width="100%" height="60" frameborder="0"></iframe>
+                </div>
+                
+                <!-- Download and delete buttons -->
+                <div class="mt-2">
+                    <a href="${directDownloadUrl}" class="btn btn-sm btn-outline-secondary" download>
+                        <i class="bi bi-download"></i> Download Audio
+                    </a>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteExamplePronunciation()">
+                        <i class="bi bi-trash"></i> Delete Pronunciation
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        container.innerHTML = '<p class="text-muted">No pronunciation recorded</p>';
+    }
+}
+    </script>
+}

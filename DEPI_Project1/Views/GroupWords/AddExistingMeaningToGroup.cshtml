@@ -1,0 +1,65 @@
+﻿@model AddExistingMeaningToGroupViewModel
+
+@{
+}
+
+<h2>Add Existing Meaning to Group</h2>
+
+    <div class="row">
+        <div class="col-md-4">
+            <!-- Search Input -->
+        <div class="form-group">
+            <label for="searchMeaning" class="control-label">Search Definitions</label>
+            <input type="text" id="searchMeaning" class="form-control" placeholder="Type to search..." />
+        </div>
+
+
+        <form asp-controller="GroupWords" asp-action="AddExistingMeaningToGroup" asp-route-groupId="@ViewBag.groupId" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <!-- Dropdown for selecting existing meanings -->
+            <div class="form-group">
+                <label for="MeaningID" class="control-label">Select Existing Meaning</label>
+                <select asp-for="MeaningID" class="form-control" id="MeaningID" asp-items="ViewBag.Meanings">
+                    <option value="">-- Select Definition --</option>
+                </select>
+            </div>
+
+                <div class="form-group">
+                    <input type="submit" value="Create" class="btn btn-primary" />
+                </div>
+            </form>
+        </div>
+    </div>
+
+<a asp-action="Details" asp-controller="GroupWords" asp-route-id="@ViewBag.groupId" class="btn btn-secondary">Cancel</a>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Search functionality
+            $('#searchMeaning').on('input', function () {
+                var searchText = $(this).val().toLowerCase(); // Get the search text
+
+                // Loop through all options in the dropdown
+                $('#MeaningID option').each(function () {
+                    var optionText = $(this).text().toLowerCase(); // Get the option text
+
+                    // Check if the search text matches either the MeaningText or the related words
+                    if (optionText.includes(searchText)) {
+                        $(this).show(); // Show the option if it matches the search text
+                    } else {
+                        $(this).hide(); // Hide the option if it doesn't match
+                    }
+                });
+
+                // Ensure the dropdown is updated to reflect the visible options
+                $('#MeaningID').trigger('change');
+            });
+        });
+    </script>
+}

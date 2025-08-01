@@ -1,0 +1,285 @@
+﻿@model Word
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Word</h4>
+<hr />
+<div class="row">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <!-- Main form for submitting the word -->
+        <form method="post" asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Word_text" class="control-label"></label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Language"></label>
+                <select asp-for="Language" class="form-control">
+                    @foreach (var item in ViewBag.Languages as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+    <label asp-for="Class">Part of Speech (Optional)</label>
+    <select asp-for="Class" class="form-control">
+        <option value="">Select a part of speech (optional)</option>
+        @foreach (var item in ViewBag.Class as SelectList)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+    <span asp-validation-for="Class" class="text-danger"></span>
+    <small class="form-text text-muted">This field is optional</small>
+</div>
+
+            <!-- Root Search and Selection -->
+            <div class="form-group">
+                <label class="control-label">Search for Root</label>
+                <div class="input-group">
+                    <input type="text" id="RootSearchInput" class="form-control" placeholder="Type to search roots..." autocomplete="off" />
+                    <div class="input-group-append">
+                        <button type="button" id="ClearRootBtn" class="btn btn-outline-secondary">Clear</button>
+                    </div>
+                </div>
+                <div id="RootSearchResults" class="search-results" style="display: none;"></div>
+                <input type="hidden" asp-for="RootID" id="RootIDHidden" />
+                <div id="SelectedRoot" class="selected-item" style="display: none;">
+                    <span class="selected-text"></span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-selection">×</button>
+                </div>
+                <span asp-validation-for="RootID" class="text-danger"></span>
+            </div>
+
+            <!-- Group Search and Selection -->
+            <div class="form-group">
+                <label class="control-label">Search for Group</label>
+                <div class="input-group">
+                    <input type="text" id="GroupSearchInput" class="form-control" placeholder="Type to search groups..." autocomplete="off" />
+                    <div class="input-group-append">
+                        <button type="button" id="ClearGroupBtn" class="btn btn-outline-secondary">Clear</button>
+                    </div>
+                </div>
+                <div id="GroupSearchResults" class="search-results" style="display: none;"></div>
+                <input type="hidden" asp-for="GroupID" id="GroupIDHidden" />
+                <div id="SelectedGroup" class="selected-item" style="display: none;">
+                    <span class="selected-text"></span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-selection">×</button>
+                </div>
+                <span asp-validation-for="GroupID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="notes" class="control-label"></label>
+                <input asp-for="notes" class="form-control" />
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IPA" class="control-label"></label>
+                <input asp-for="IPA" class="form-control" />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Pronunciation" class="control-label"></label>
+                <input asp-for="Pronunciation" class="form-control" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+            </div>
+
+
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<style>
+    .search-results {
+        position: absolute;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #ccc;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .search-result-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+    .selected-item {
+        margin-top: 5px;
+        padding: 5px 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .form-group {
+        position: relative;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            let rootSearchTimeout;
+            let groupSearchTimeout;
+
+            // Root search functionality
+            $('#RootSearchInput').on('input', function () {
+                const searchText = $(this).val().trim();
+
+                clearTimeout(rootSearchTimeout);
+
+                if (searchText.length < 2) {
+                    $('#RootSearchResults').hide().empty();
+                    return;
+                }
+
+                rootSearchTimeout = setTimeout(function() {
+                    $.get('/Words/SearchRoots', { searchTerm: searchText })
+                        .done(function(data) {
+                            displaySearchResults(data, '#RootSearchResults', 'root');
+                        })
+                        .fail(function() {
+                            console.error('Failed to search roots');
+                        });
+                }, 300);
+            });
+
+            // Group search functionality
+            $('#GroupSearchInput').on('input', function () {
+                const searchText = $(this).val().trim();
+
+                clearTimeout(groupSearchTimeout);
+
+                if (searchText.length < 2) {
+                    $('#GroupSearchResults').hide().empty();
+                    return;
+                }
+
+                groupSearchTimeout = setTimeout(function() {
+                    $.get('/Words/SearchGroups', { searchTerm: searchText })
+                        .done(function(data) {
+                            displaySearchResults(data, '#GroupSearchResults', 'group');
+                        })
+                        .fail(function() {
+                            console.error('Failed to search groups');
+                        });
+                }, 300);
+            });
+
+            // Display search results
+            function displaySearchResults(data, containerSelector, type) {
+                const container = $(containerSelector);
+                container.empty();
+
+                if (data && data.length > 0) {
+                    data.forEach(function(item) {
+                        const resultItem = $('<div class="search-result-item"></div>')
+                            .text(item.text)
+                            .data('value', item.value)
+                            .data('text', item.text)
+                            .click(function() {
+                                selectItem($(this), type);
+                            });
+                        container.append(resultItem);
+                    });
+                    container.show();
+                } else {
+                    container.append('<div class="search-result-item">No results found</div>');
+                    container.show();
+                }
+            }
+
+            // Select an item
+            function selectItem(element, type) {
+                const value = element.data('value');
+                const text = element.data('text');
+
+                if (type === 'root') {
+                    $('#RootIDHidden').val(value);
+                    $('#RootSearchInput').val('').hide();
+                    $('#RootSearchResults').hide();
+                    $('#SelectedRoot .selected-text').text(text);
+                    $('#SelectedRoot').show();
+                } else if (type === 'group') {
+                    $('#GroupIDHidden').val(value);
+                    $('#GroupSearchInput').val('').hide();
+                    $('#GroupSearchResults').hide();
+                    $('#SelectedGroup .selected-text').text(text);
+                    $('#SelectedGroup').show();
+                }
+            }
+
+            // Remove selection
+            $('#SelectedRoot .remove-selection').click(function() {
+                $('#RootIDHidden').val('');
+                $('#RootSearchInput').val('').show();
+                $('#SelectedRoot').hide();
+            });
+
+            $('#SelectedGroup .remove-selection').click(function() {
+                $('#GroupIDHidden').val('');
+                $('#GroupSearchInput').val('').show();
+                $('#SelectedGroup').hide();
+            });
+
+            // Clear buttons
+            $('#ClearRootBtn').click(function() {
+                $('#RootIDHidden').val('');
+                $('#RootSearchInput').val('').show();
+                $('#RootSearchResults').hide();
+                $('#SelectedRoot').hide();
+            });
+
+            $('#ClearGroupBtn').click(function() {
+                $('#GroupIDHidden').val('');
+                $('#GroupSearchInput').val('').show();
+                $('#GroupSearchResults').hide();
+                $('#SelectedGroup').hide();
+            });
+
+            // Hide search results when clicking outside
+            $(document).click(function(e) {
+                if (!$(e.target).closest('.form-group').length) {
+                    $('.search-results').hide();
+                }
+            });
+        });
+    </script>
+}

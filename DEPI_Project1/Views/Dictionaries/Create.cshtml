@@ -1,0 +1,84 @@
+﻿@model Dictionary
+
+@{
+    ViewData["Title"] = "Create Dictionary";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Create New Dictionary</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="DictionaryName" class="form-label">
+                                    <i class="bi bi-book"></i> Dictionary Name *
+                                </label>
+                                <input asp-for="DictionaryName" class="form-control" placeholder="Enter dictionary name" />
+                                <span asp-validation-for="DictionaryName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Abbreviation" class="form-label">
+                                    <i class="bi bi-tag"></i> Abbreviation
+                                </label>
+                                <input asp-for="Abbreviation" class="form-control" placeholder="e.g., OED, MW" />
+                                <span asp-validation-for="Abbreviation" class="text-danger"></span>
+                                <small class="form-text text-muted">Short form used for references</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="MaxNumberOfPages" class="form-label">
+                                    <i class="bi bi-file-earmark-text"></i> Maximum Pages
+                                </label>
+                                <input asp-for="MaxNumberOfPages" class="form-control" type="number" min="1" placeholder="e.g., 1200" />
+                                <span asp-validation-for="MaxNumberOfPages" class="text-danger"></span>
+                                <small class="form-text text-muted">Total number of pages in the dictionary</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Detils" class="form-label">
+                                <i class="bi bi-info-circle"></i> Details
+                            </label>
+                            <textarea asp-for="Detils" class="form-control" rows="3" 
+                                      placeholder="Enter detailed description about the dictionary..."></textarea>
+                            <span asp-validation-for="Detils" class="text-danger"></span>
+                            <small class="form-text text-muted">Detailed information about the dictionary</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">
+                                <i class="bi bi-sticky"></i> Notes
+                            </label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" 
+                                      placeholder="Additional notes or comments..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                            <small class="form-text text-muted">Additional notes or comments</small>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Create Dictionary
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

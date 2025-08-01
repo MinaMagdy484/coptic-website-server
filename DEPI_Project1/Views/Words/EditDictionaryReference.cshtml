@@ -1,0 +1,50 @@
+﻿@model DictionaryReferenceWord
+
+@{
+    ViewData["Title"] = "Edit Dictionary Reference";
+    var dictionaries = ViewBag.Dictionaries as List<Dictionary>;
+}
+
+<h2>Edit Dictionary Reference</h2>
+
+<form asp-action="EditDictionaryReference" method="post">
+    <input type="hidden" asp-for="ID" />
+    <input type="hidden" asp-for="WordID" />
+
+    <div class="form-group">
+        <label asp-for="DictionaryID" class="control-label"></label>
+        <select asp-for="DictionaryID" class="form-control">
+            <option value="">-- Select Dictionary --</option>
+            @foreach (var dictionary in dictionaries)
+            {
+                <option value="@dictionary.ID" selected="@(dictionary.ID == Model.DictionaryID ? "selected" : null)">
+                    @dictionary.DictionaryName
+                </option>
+            }
+        </select>
+        <span asp-validation-for="DictionaryID" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Reference" class="control-label"></label>
+        <input asp-for="Reference" class="form-control" />
+        <span asp-validation-for="Reference" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Column" class="control-label"></label>
+        <input asp-for="Column" class="form-control" />
+        <span asp-validation-for="Column" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <input type="submit" value="Save Changes" class="btn btn-primary" />
+        <a asp-action="Details" asp-route-id="@Model.WordID" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

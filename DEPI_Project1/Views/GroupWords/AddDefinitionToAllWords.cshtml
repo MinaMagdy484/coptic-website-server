@@ -1,0 +1,66 @@
+﻿@model Meaning
+@{
+    ViewData["Title"] = "Add Definition to All Words in Group";
+}
+
+<h1>Add Definition to All Words</h1>
+<h4>Group: @ViewBag.GroupName</h4>
+<p class="text-muted">This definition will be added to all @ViewBag.WordCount words in this group.</p>
+<hr />
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="AddDefinitionToAllWords" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+
+            <div class="form-group mb-3">
+                <label asp-for="MeaningText" class="control-label">Definition</label>
+                <textarea asp-for="MeaningText" class="form-control" rows="4" required></textarea>
+                <span asp-validation-for="MeaningText" class="text-danger"></span>
+                <small class="form-text text-muted">Enter the definition that will be applied to all words in this group.</small>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Language" class="control-label">Definition Language</label>
+                <select asp-for="Language" class="form-control" asp-items="ViewBag.Languages as SelectList" required>
+                    <option value="">Please select a language</option>
+                </select>
+                <span asp-validation-for="Language" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Notes" class="control-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> Words that will receive this definition:</h6>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var word in (List<Word>)ViewBag.GroupWords)
+                    {
+                        <li class="mb-1">
+                            <strong>@word.Word_text</strong>
+                            <span class="badge bg-secondary">@word.Language</span>
+                            <span class="badge bg-info">@word.Class</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Add Definition to All Words" class="btn btn-primary"
+                       onclick="return confirm('Are you sure you want to add this definition to all @ViewBag.WordCount words in the group?');" />
+                <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

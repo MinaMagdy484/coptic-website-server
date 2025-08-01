@@ -1,0 +1,124 @@
+﻿@model IEnumerable<Dictionary>
+
+@{
+    ViewData["Title"] = "Dictionaries";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-book"></i> Dictionaries</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create New Dictionary
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Dictionary Name</th>
+                        <th>Abbreviation</th>
+                        <th>Details</th>
+                        <th>Max Pages</th>
+                        <th>Notes</th>
+                        <th>References</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">#@item.ID</span>
+                            </td>
+                            <td>
+                                <strong>@Html.DisplayFor(modelItem => item.DictionaryName)</strong>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.Abbreviation))
+                                {
+                                    <span class="badge bg-info">@item.Abbreviation</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.Detils))
+                                {
+                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Detils">
+                                        @item.Detils
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No details</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.MaxNumberOfPages.HasValue)
+                                {
+                                    <span class="badge bg-success">@item.MaxNumberOfPages pages</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not specified</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.Notes))
+                                {
+                                    <span class="text-truncate d-inline-block" style="max-width: 150px;" title="@item.Notes">
+                                        @item.Notes
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No notes</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.DictionaryReferenceWords != null && item.DictionaryReferenceWords.Any())
+                                {
+                                    <span class="badge bg-primary">@item.DictionaryReferenceWords.Count() references</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">0 references</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a asp-action="Details" asp-route-id="@item.ID" 
+                                       class="btn btn-outline-info btn-sm" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.ID" 
+                                       class="btn btn-outline-primary btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.ID" 
+                                       class="btn btn-outline-danger btn-sm" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No dictionaries have been created yet.
+            <a asp-action="Create" class="alert-link">Create your first dictionary</a>.
+        </div>
+    }
+</div>

@@ -1,0 +1,380 @@
+﻿@{
+    ViewBag.Title = "Create Bible Reference";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-book"></i> Add Bible Reference</h4>
+                    @if (!string.IsNullOrEmpty(ViewBag.WordText?.ToString()))
+                    {
+                        <small class="d-block mt-1">for word: <strong>@ViewBag.WordText</strong></small>
+                    }
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateBibleReference" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        
+                        <input type="hidden" name="wordMeaningId" value="@ViewBag.WordMeaningId" />
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="bookNumber" class="form-label">
+                                    <i class="bi bi-book-half"></i> Bible Book *
+                                </label>
+                                <div class="position-relative">
+                                    <input type="text" id="bookSearch" class="form-control mb-2" placeholder="Search for a Bible book..." />
+                                    <select name="bookNumber" id="bookSelect" class="form-select" required>
+                                        <option value="">-- Select a Bible Book --</option>
+                                        @foreach (var book in ViewBag.BibleBooks as SelectList)
+                                        {
+                                            <option value="@book.Value" data-search="@book.Text.ToLower()">@book.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                                <small class="form-text text-muted">Type to search or select from dropdown</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+    <label for="language" class="form-label">
+        <i class="bi bi-translate"></i> Language *
+    </label>
+    
+    <!-- Hidden input to submit the selected language value -->
+    <input type="hidden" name="language" value="@ViewBag.WordLanguage" />
+
+    <select id="languageSelect" class="form-select" disabled>
+        <option value="">-- Select Language --</option>
+        @foreach (var language in ViewData["Languages"] as SelectList)
+        {
+            if (!string.IsNullOrEmpty(ViewBag.WordLanguage?.ToString()) && 
+                language.Value == ViewBag.WordLanguage.ToString())
+            {
+                <option value="@language.Value" selected>@language.Text</option>
+            }
+            else
+            {
+                <option value="@language.Value">@language.Text</option>
+            }
+        }
+    </select>
+
+    @if (!string.IsNullOrEmpty(ViewBag.WordLanguage?.ToString()))
+    {
+        <small class="form-text text-muted">Pre-selected based on word language: @ViewBag.WordLanguage</small>
+    }
+</div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="Edition" class="form-label">
+                                    <i class="bi bi-journal-text"></i> Edition *
+                                </label>
+                                <select name="Edition" id="editionSelect" class="form-select" required disabled>
+                                    <option value="">-- Select Book and Language First --</option>
+                                </select>
+                                <div id="editionLoading" class="d-none">
+                                    <small class="text-muted">
+                                        <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                        Loading editions...
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="chapter" class="form-label">
+                                    <i class="bi bi-hash"></i> Chapter *
+                                </label>
+                                <select name="chapter" id="chapterSelect" class="form-select" required disabled>
+                                    <option value="">-- Select Edition First --</option>
+                                </select>
+                                <div id="chapterLoading" class="d-none">
+                                    <small class="text-muted">
+                                        <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                        Loading chapters...
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="verse" class="form-label">
+                                    <i class="bi bi-hash"></i> Verse *
+                                </label>
+                                <select name="verse" id="verseSelect" class="form-select" required disabled>
+                                    <option value="">-- Select Chapter First --</option>
+                                </select>
+                                <div id="verseLoading" class="d-none">
+                                    <small class="text-muted">
+                                        <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                        Loading verses...
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="javascript:history.back()" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-info">
+                                <i class="bi bi-plus-circle"></i> Add Reference
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const bookSearch = document.getElementById('bookSearch');
+    const bookSelect = document.getElementById('bookSelect');
+    const languageSelect = document.getElementById('languageSelect');
+    const editionSelect = document.getElementById('editionSelect');
+    const chapterSelect = document.getElementById('chapterSelect');
+    const verseSelect = document.getElementById('verseSelect');
+    
+    const editionLoading = document.getElementById('editionLoading');
+    const chapterLoading = document.getElementById('chapterLoading');
+    const verseLoading = document.getElementById('verseLoading');
+    
+    const options = Array.from(bookSelect.options);
+
+    // Book search functionality
+    bookSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        // Save current selection
+        const currentValue = bookSelect.value;
+        
+        // Clear current options (except first)
+        bookSelect.innerHTML = '<option value="">-- Select a Bible Book --</option>';
+        
+        // Filter and add matching options
+        const filteredOptions = options.slice(1).filter(option => 
+            option.dataset.search && option.dataset.search.includes(searchTerm)
+        );
+        
+        filteredOptions.forEach(option => {
+            bookSelect.appendChild(option.cloneNode(true));
+        });
+        
+        // Restore selection if it still exists
+        if (currentValue && bookSelect.querySelector(`option[value="${currentValue}"]`)) {
+            bookSelect.value = currentValue;
+        }
+        
+        // Auto-select if only one match and search term is not empty
+        if (searchTerm && filteredOptions.length === 1) {
+            bookSelect.value = filteredOptions[0].value;
+            bookSelect.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Load editions when book or language changes
+    function loadEditions() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        
+        if (!bookNumber || !language) {
+            editionSelect.innerHTML = '<option value="">-- Select Book and Language First --</option>';
+            editionSelect.disabled = true;
+            resetChaptersAndVerses();
+            return;
+        }
+        
+        // Show loading
+        editionLoading.classList.remove('d-none');
+        editionSelect.disabled = true;
+        editionSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Words/GetAvailableEditions?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                editionLoading.classList.add('d-none');
+                
+                if (data.success && data.editions && data.editions.length > 0) {
+                    editionSelect.innerHTML = '<option value="">-- Select Edition --</option>';
+                    data.editions.forEach(edition => {
+                        const option = document.createElement('option');
+                        option.value = edition;
+                        option.textContent = edition;
+                        editionSelect.appendChild(option);
+                    });
+                    editionSelect.disabled = false;
+                    
+                    // Auto-select if only one edition available
+                    if (data.editions.length === 1) {
+                        editionSelect.value = data.editions[0];
+                        editionSelect.dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    editionSelect.innerHTML = '<option value="">-- No Editions Available --</option>';
+                    editionSelect.disabled = true;
+                }
+                
+                resetChaptersAndVerses();
+            })
+            .catch(error => {
+                console.error('Error loading editions:', error);
+                editionLoading.classList.add('d-none');
+                editionSelect.innerHTML = '<option value="">-- Error Loading Editions --</option>';
+                editionSelect.disabled = true;
+                resetChaptersAndVerses();
+            });
+    }
+
+    // Load chapters when edition changes
+    function loadChapters() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        const edition = editionSelect.value;
+        
+        if (!bookNumber || !language || !edition) {
+            chapterSelect.innerHTML = '<option value="">-- Select Edition First --</option>';
+            chapterSelect.disabled = true;
+            resetVerses();
+            return;
+        }
+        
+        // Show loading
+        chapterLoading.classList.remove('d-none');
+        chapterSelect.disabled = true;
+        chapterSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Words/GetAvailableChapters?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}&edition=${encodeURIComponent(edition)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                chapterLoading.classList.add('d-none');
+                
+                if (data.success && data.chapters && data.chapters.length > 0) {
+                    chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+                    data.chapters.forEach(chapter => {
+                        const option = document.createElement('option');
+                        option.value = chapter;
+                        option.textContent = chapter;
+                        chapterSelect.appendChild(option);
+                    });
+                    chapterSelect.disabled = false;
+                } else {
+                    chapterSelect.innerHTML = '<option value="">-- No Chapters Available --</option>';
+                    chapterSelect.disabled = true;
+                }
+                
+                resetVerses();
+            })
+            .catch(error => {
+                console.error('Error loading chapters:', error);
+                chapterLoading.classList.add('d-none');
+                chapterSelect.innerHTML = '<option value="">-- Error Loading Chapters --</option>';
+                chapterSelect.disabled = true;
+                resetVerses();
+            });
+    }
+
+    // Load verses when chapter changes
+    function loadVerses() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        const edition = editionSelect.value;
+        const chapter = chapterSelect.value;
+        
+        if (!bookNumber || !language || !edition || !chapter) {
+            verseSelect.innerHTML = '<option value="">-- Select Chapter First --</option>';
+            verseSelect.disabled = true;
+            return;
+        }
+        
+        // Show loading
+        verseLoading.classList.remove('d-none');
+        verseSelect.disabled = true;
+        verseSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Words/GetAvailableVerses?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}&edition=${encodeURIComponent(edition)}&chapter=${encodeURIComponent(chapter)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                verseLoading.classList.add('d-none');
+                
+                if (data.success && data.verses && data.verses.length > 0) {
+                    verseSelect.innerHTML = '<option value="">-- Select Verse --</option>';
+                    data.verses.forEach(verse => {
+                        const option = document.createElement('option');
+                        option.value = verse;
+                        option.textContent = verse;
+                        verseSelect.appendChild(option);
+                    });
+                    verseSelect.disabled = false;
+                } else {
+                    verseSelect.innerHTML = '<option value="">-- No Verses Available --</option>';
+                    verseSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading verses:', error);
+                verseLoading.classList.add('d-none');
+                verseSelect.innerHTML = '<option value="">-- Error Loading Verses --</option>';
+                verseSelect.disabled = true;
+            });
+    }
+
+    // Reset functions
+    function resetChaptersAndVerses() {
+        chapterSelect.innerHTML = '<option value="">-- Select Edition First --</option>';
+        chapterSelect.disabled = true;
+        chapterLoading.classList.add('d-none');
+        resetVerses();
+    }
+
+    function resetVerses() {
+        verseSelect.innerHTML = '<option value="">-- Select Chapter First --</option>';
+        verseSelect.disabled = true;
+        verseLoading.classList.add('d-none');
+    }
+
+    // Event listeners
+    bookSelect.addEventListener('change', loadEditions);
+    languageSelect.addEventListener('change', loadEditions);
+    editionSelect.addEventListener('change', loadChapters);
+    chapterSelect.addEventListener('change', loadVerses);
+
+    // Auto-load editions if both book and language are already selected on page load
+    if (languageSelect.value && bookSelect.value) {
+        loadEditions();
+    } else if (languageSelect.value) {
+        // If language is pre-selected but no book, just trigger change to enable the flow when book is selected
+        languageSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

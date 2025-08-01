@@ -1,0 +1,309 @@
+﻿@model Example
+
+@{
+    ViewData["Title"] = "Create Example";
+}
+
+<h1>Create Example</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="CreateExample" asp-route-wordMeaningId="@ViewBag.WordMeaningId" asp-route-wordId="@ViewBag.WordId">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="ExampleText" class="control-label"></label>
+                <input asp-for="ExampleText" class="form-control" />
+                <span asp-validation-for="ExampleText" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Language" class="control-label"></label>
+                <input asp-for="Language" class="form-control" value="@ViewBag.Language" readonly />
+                <span asp-validation-for="Language" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <label asp-for="Reference" class="control-label"></label>
+                <input asp-for="Reference" class="form-control" />
+                <span asp-validation-for="Reference" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Pronunciation" class="control-label"></label>
+                <input asp-for="Pronunciation" class="form-control" id="pronunciation-url" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+                
+                <!-- Current pronunciation display -->
+                <div id="current-pronunciation">
+                    <!-- This will be populated by updatePronunciationDisplay() -->
+                </div>
+                
+                <!-- Recording controls -->
+                <div class="mt-3">
+                    <h5>Record Pronunciation:</h5>
+                    <div id="recorder-controls" style="display: none;">
+                        <button type="button" id="record-btn" class="btn btn-primary" onclick="startRecording()">
+                            <i class="bi bi-mic"></i> Start Recording
+                        </button>
+                        <button type="button" id="stop-btn" class="btn btn-danger" onclick="stopRecording()" style="display: none;">
+                            <i class="bi bi-stop"></i> Stop Recording
+                        </button>
+                        <span id="recording-indicator" class="text-danger ms-2" style="display: none;">
+                            <i class="bi bi-record-circle-fill"></i> Recording...
+                            <span id="recording-timer">0:00</span>
+                        </span>
+                    </div>
+
+                    <!-- Initialize button for browsers that need explicit permission -->
+                    <button type="button" class="btn btn-info btn-sm" onclick="initializeRecorder()">
+                        <i class="bi bi-mic-fill"></i> Enable Microphone
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Notes" class="control-label"></label>
+                <input asp-for="Notes" class="form-control" />
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Details" asp-route-id="@ViewBag.WordId">Back to Word Details</a>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        // Audio recording variables
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingTimer;
+        let recordingDuration = 0;
+        let audioBlob;
+        let audioUrl;
+        
+        // When the pronunciation URL input changes, update the display
+        document.getElementById('pronunciation-url').addEventListener('input', function() {
+            updatePronunciationDisplay(this.value);
+        });
+        
+        // Initialize with any existing value
+        window.addEventListener('DOMContentLoaded', function() {
+            const pronunciationUrl = document.getElementById('pronunciation-url').value;
+            if (pronunciationUrl) {
+                updatePronunciationDisplay(pronunciationUrl);
+            }
+        });
+        
+        function updatePronunciationDisplay(pronunciationUrl) {
+            const container = document.getElementById('current-pronunciation');
+
+            if (pronunciationUrl) {
+                // Extract file ID from Google Drive URL
+                let fileId = '';
+                if (pronunciationUrl.includes('/file/d/')) {
+                    const match = pronunciationUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+                    fileId = match ? match[1] : '';
+                } else if (pronunciationUrl.includes('id=')) {
+                    const match = pronunciationUrl.match(/id=([a-zA-Z0-9-_]+)/);
+                    fileId = match ? match[1] : '';
+                }
+
+                const directDownloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : pronunciationUrl;
+                const embedUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : pronunciationUrl;
+
+                // Determine audio type
+                let audioType = 'audio/webm';
+                if (pronunciationUrl.includes('.wav')) {
+                    audioType = 'audio/wav';
+                } else if (pronunciationUrl.includes('.mp3')) {
+                    audioType = 'audio/mpeg';
+                } else if (pronunciationUrl.includes('.ogg')) {
+                    audioType = 'audio/ogg';
+                }
+
+                container.innerHTML = `
+                    <div class="current-audio mt-3">
+                        <h5>Current Pronunciation:</h5>
+
+                        <!-- Primary audio element -->
+                        <audio controls class="mb-2 w-100" preload="metadata" controlsList="nodownload"
+                               onerror="console.log('Audio error:', this.error); this.style.display='none';"
+                               onloadeddata="console.log('Audio loaded successfully')">
+                            <source src="${directDownloadUrl}" type="${audioType}">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <!-- Fallback: Google Drive embed -->
+                        <div class="mt-2" id="fallback-audio" style="display:none;">
+                            <small class="text-muted">If audio doesn't play above, try:</small><br>
+                            <iframe src="${embedUrl}" width="100%" height="60" frameborder="0"></iframe>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-danger btn-sm mt-2" onclick="discardRecording()">
+                            <i class="bi bi-trash"></i> Discard Recording
+                        </button>
+                    </div>
+                `;
+                
+                // Show fallback if the audio fails to play
+                const audioElement = container.querySelector('audio');
+                audioElement.addEventListener('error', function() {
+                    document.getElementById('fallback-audio').style.display = 'block';
+                });
+            } else {
+                container.innerHTML = '';
+            }
+        }
+        
+        function initializeRecorder() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                console.log('Initializing audio recorder...');
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function(stream) {
+                        document.getElementById('recorder-controls').style.display = 'block';
+                        mediaRecorder = new MediaRecorder(stream);
+                        
+                        // Event handler for when data is available
+                        mediaRecorder.ondataavailable = function(e) {
+                            audioChunks.push(e.data);
+                        };
+                        
+                        // Event handler for when recording stops
+                        mediaRecorder.onstop = function() {
+                            audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            audioUrl = URL.createObjectURL(audioBlob);
+                            
+                            // Update the UI to show the recording
+                            showRecordingPreview(audioUrl);
+                        };
+                        
+                        console.log('Audio recorder initialized');
+                    })
+                    .catch(function(err) {
+                        console.error('Error initializing audio recorder:', err);
+                        alert('Error accessing your microphone: ' + err.message);
+                    });
+            } else {
+                alert("Your browser doesn't support audio recording.");
+            }
+        }
+        
+        function startRecording() {
+            audioChunks = [];
+            recordingDuration = 0;
+            mediaRecorder.start();
+            document.getElementById('record-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'inline-block';
+            document.getElementById('recording-indicator').style.display = 'inline-block';
+            
+            // Start the recording timer
+            recordingTimer = setInterval(function() {
+                recordingDuration++;
+                const minutes = Math.floor(recordingDuration / 60);
+                const seconds = recordingDuration % 60;
+                document.getElementById('recording-timer').textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }, 1000);
+            
+            console.log('Recording started');
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                document.getElementById('record-btn').style.display = 'inline-block';
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('recording-indicator').style.display = 'none';
+                
+                // Clear the recording timer
+                clearInterval(recordingTimer);
+                
+                console.log('Recording stopped');
+            }
+        }
+        
+        function showRecordingPreview(audioUrl) {
+            // Create a temporary preview that will be replaced by updatePronunciationDisplay
+            // once the file is uploaded
+            const container = document.getElementById('current-pronunciation');
+            container.innerHTML = `
+                <div class="alert alert-info mt-3">
+                    <h5>Recording Preview:</h5>
+                    <audio controls class="w-100" src="${audioUrl}"></audio>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-success" onclick="uploadRecording()">
+                            <i class="bi bi-cloud-upload"></i> Use This Recording
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="discardRecording()">
+                            <i class="bi bi-x-circle"></i> Discard
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function uploadRecording() {
+            if (!audioBlob) {
+                alert('No recording to upload');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('audioFile', audioBlob, 'example_recording.webm');
+            
+            // Show loading state
+            const container = document.getElementById('current-pronunciation');
+            container.innerHTML = `
+                <div class="alert alert-info mt-3">
+                    <h5>Uploading Recording...</h5>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated w-100" 
+                             role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            `;
+            
+            fetch('/Words/UploadExampleAudio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Upload response:', data);
+                if (data.success) {
+                    // Set the pronunciation URL in the input field
+                    document.getElementById('pronunciation-url').value = data.url;
+                    // Update the display with the new URL
+                    updatePronunciationDisplay(data.url);
+                } else {
+                    alert('Error uploading audio: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading audio:', error);
+                alert('Error uploading audio: ' + error);
+            });
+        }
+        
+        function discardRecording() {
+            // Clear any current recording
+            audioBlob = null;
+            audioUrl = null;
+            audioChunks = [];
+            
+            // Clear the pronunciation URL input
+            document.getElementById('pronunciation-url').value = '';
+            
+            // Clear the preview
+            document.getElementById('current-pronunciation').innerHTML = '';
+        }
+    </script>
+}

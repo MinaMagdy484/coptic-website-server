@@ -1,0 +1,298 @@
+﻿@model Word
+@{
+    ViewData["Title"] = "Create Word for Group";
+}
+
+<h1>Create New Word</h1>
+<h4>Add to Group: @ViewBag.GroupName</h4>
+<hr />
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="CreateWordForGroup" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+
+            <div class="form-group mb-3">
+                <label asp-for="Word_text" class="control-label">Word Text</label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+    <label asp-for="Language" class="control-label">Language (Coptic Only)</label>
+    <select asp-for="Language" class="form-control" asp-items="ViewBag.Languages as SelectList">
+        <option value="">Please select a Coptic language</option>
+    </select>
+    <span asp-validation-for="Language" class="text-danger"></span>
+</div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Class" class="control-label">Part of Speech</label>
+                <select asp-for="Class" class="form-control" asp-items="ViewBag.Class as SelectList">
+                    <option value="">Please select a part of speech</option>
+                </select>
+                <span asp-validation-for="Class" class="text-danger"></span>
+            </div>
+
+            <!-- Group Field - Readonly -->
+            <div class="form-group mb-3">
+                <label class="control-label">Group</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="@ViewBag.GroupName" readonly />
+                    <span class="input-group-text bg-secondary text-white">
+                        <i class="bi bi-lock"></i>
+                    </span>
+                </div>
+                <small class="form-text text-muted">This word will be added to the selected group</small>
+            </div>
+
+            <!-- Root Search Section - Update the label and help text -->
+            <div class="form-group mb-3">
+                <label asp-for="RootID" class="control-label">Root (Coptic Words Only)</label>
+                
+                <!-- Search Input -->
+                <div class="mb-2">
+                    <div class="input-group">
+                        <input type="text" id="rootSearchInput" class="form-control" 
+                               placeholder="Search for Coptic root words (C-B, C-S, etc.)..." 
+                               value="@ViewData["RootSearch"]" />
+                        <button type="button" class="btn btn-outline-secondary" onclick="searchRoots()">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="clearRootSearch()">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">
+                        <i class="bi bi-info-circle"></i> Only Coptic root words (Language starts with C-) that are not derived from other words will be shown
+                    </small>
+                </div>
+
+                <!-- Search Results -->
+                <div id="rootSearchResults" class="border rounded p-2 mb-2" style="max-height: 200px; overflow-y: auto; display: none;">
+                    <!-- Search results will be populated here -->
+                </div>
+
+                <!-- Traditional Dropdown (fallback) -->
+                <select asp-for="RootID" id="rootDropdown" class="form-control" asp-items="ViewBag.RootID as SelectList">
+                    <option value="">No Root</option>
+                </select>
+                <span asp-validation-for="RootID" class="text-danger"></span>
+                
+                <!-- Selected Root Display -->
+                <div id="selectedRootDisplay" class="alert alert-info mt-2" style="display: none;">
+                    <strong>Selected Root:</strong> <span id="selectedRootText"></span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearRootSelection()">
+                        <i class="bi bi-x"></i> Remove
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="notes" class="control-label">Notes</label>
+                <textarea asp-for="notes" class="form-control" rows="3" placeholder="Enter any additional notes about this word..."></textarea>
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="IPA" class="control-label">IPA (International Phonetic Alphabet)</label>
+                <input asp-for="IPA" class="form-control" placeholder="Enter IPA transcription..." />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Pronunciation" class="control-label">Pronunciation</label>
+                <input asp-for="Pronunciation" class="form-control" placeholder="Enter pronunciation guide..." />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+            </div>
+
+
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Create Word
+                </button>
+                <a asp-action="Details" asp-route-id="@ViewBag.GroupId" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Group
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Group Information Panel -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Group Information</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">@ViewBag.GroupName</h6>
+                @if (!string.IsNullOrEmpty(ViewBag.GroupOrigin as string))
+                {
+                    <p class="card-text"><strong>Origin:</strong> @ViewBag.GroupOrigin</p>
+                }
+                @if (!string.IsNullOrEmpty(ViewBag.GroupEtymology as string))
+                {
+                    <p class="card-text"><strong>Etymology:</strong> @ViewBag.GroupEtymology</p>
+                }
+                @if (!string.IsNullOrEmpty(ViewBag.GroupNotes as string))
+                {
+                    <p class="card-text"><strong>Notes:</strong> @ViewBag.GroupNotes</p>
+                }
+                <p class="card-text">
+                    <small class="text-muted">
+                        Current words in group: @(ViewBag.GroupWordCount ?? 0)
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        let searchTimeout;
+
+        function searchRoots() {
+            const searchTerm = document.getElementById('rootSearchInput').value.trim();
+            if (searchTerm.length < 2) {
+                alert('Please enter at least 2 characters to search');
+                return;
+            }
+
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            // Set loading state
+            const resultsDiv = document.getElementById('rootSearchResults');
+            resultsDiv.innerHTML = '<div class="text-center"><i class="bi bi-hourglass-split"></i> Searching...</div>';
+            resultsDiv.style.display = 'block';
+
+            // Debounce search
+            searchTimeout = setTimeout(() => {
+                fetch(`@Url.Action("SearchRoots", "GroupWords")?searchTerm=${encodeURIComponent(searchTerm)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displaySearchResults(data);
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        resultsDiv.innerHTML = '<div class="text-danger"><i class="bi bi-exclamation-triangle"></i> Error searching roots</div>';
+                    });
+            }, 300);
+        }
+
+        function displaySearchResults(roots) {
+            const resultsDiv = document.getElementById('rootSearchResults');
+            
+            if (roots.length === 0) {
+                resultsDiv.innerHTML = '<div class="text-muted"><i class="bi bi-info-circle"></i> No roots found</div>';
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            roots.forEach(root => {
+                html += `
+                    <button type="button" class="list-group-item list-group-item-action" onclick="selectRoot(${root.wordId}, '${escapeHtml(root.displayField)}')">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(root.word_text)}</strong>
+                                <small class="text-muted"> (${escapeHtml(root.language)})</small>
+                            </div>
+                            <span class="badge bg-secondary">${escapeHtml(root.class || '')}</span>
+                        </div>
+                        ${root.notes ? `<small class="text-muted">${escapeHtml(root.notes)}</small>` : ''}
+                    </button>
+                `;
+            });
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function selectRoot(rootId, displayText) {
+            // Set the dropdown value
+            const dropdown = document.getElementById('rootDropdown');
+            dropdown.value = rootId;
+
+            // Show selected root
+            document.getElementById('selectedRootText').textContent = displayText;
+            document.getElementById('selectedRootDisplay').style.display = 'block';
+            
+            // Hide search results
+            document.getElementById('rootSearchResults').style.display = 'none';
+            
+            // Clear search input
+            document.getElementById('rootSearchInput').value = '';
+        }
+
+        function clearRootSelection() {
+            document.getElementById('rootDropdown').value = '';
+            document.getElementById('selectedRootDisplay').style.display = 'none';
+            document.getElementById('rootSearchResults').style.display = 'none';
+            document.getElementById('rootSearchInput').value = '';
+        }
+
+        function clearRootSearch() {
+            document.getElementById('rootSearchInput').value = '';
+            document.getElementById('rootSearchResults').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Search on Enter key
+        document.getElementById('rootSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchRoots();
+            }
+        });
+
+        // Auto-search as user types (optional)
+        document.getElementById('rootSearchInput').addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            if (searchTerm.length >= 2) {
+                // Clear previous timeout
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                // Set new timeout for auto-search
+                searchTimeout = setTimeout(() => {
+                    searchRoots();
+                }, 500);
+            } else if (searchTerm.length === 0) {
+                document.getElementById('rootSearchResults').style.display = 'none';
+            }
+        });
+
+        // Initialize: If there's a pre-selected root, show it
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.getElementById('rootDropdown');
+            if (dropdown.value && dropdown.value !== '') {
+                const selectedOption = dropdown.options[dropdown.selectedIndex];
+                if (selectedOption && selectedOption.text !== 'No Root') {
+                    document.getElementById('selectedRootText').textContent = selectedOption.text;
+                    document.getElementById('selectedRootDisplay').style.display = 'block';
+                }
+            }
+        });
+    </script>
+}

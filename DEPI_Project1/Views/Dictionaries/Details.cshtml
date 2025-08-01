@@ -1,0 +1,125 @@
+﻿@model Dictionary
+
+@{
+    ViewData["Title"] = "Dictionary Details";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-book"></i> Dictionary Details</h4>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">
+                            <i class="bi bi-hash"></i> ID
+                        </dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-secondary">#@Model.ID</span>
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-book"></i> Dictionary Name
+                        </dt>
+                        <dd class="col-sm-9">
+                            <strong class="fs-5">@Html.DisplayFor(model => model.DictionaryName)</strong>
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-tag"></i> Abbreviation
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (!string.IsNullOrEmpty(Model.Abbreviation))
+                            {
+                                <span class="badge bg-info fs-6">@Model.Abbreviation</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No abbreviation specified</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-file-earmark-text"></i> Maximum Pages
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (Model.MaxNumberOfPages.HasValue)
+                            {
+                                <span class="badge bg-success">@Model.MaxNumberOfPages pages</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not specified</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-info-circle"></i> Details
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (!string.IsNullOrEmpty(Model.Detils))
+                            {
+                                <div class="border p-3 rounded bg-light">
+                                    @Html.DisplayFor(model => model.Detils)
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No details provided</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-sticky"></i> Notes
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (!string.IsNullOrEmpty(Model.Notes))
+                            {
+                                <div class="border p-3 rounded bg-light">
+                                    @Html.DisplayFor(model => model.Notes)
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No notes available</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">
+                            <i class="bi bi-link-45deg"></i> Word References
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (Model.DictionaryReferenceWords != null && Model.DictionaryReferenceWords.Any())
+                            {
+                                <span class="badge bg-primary">@Model.DictionaryReferenceWords.Count() word references</span>
+                                <div class="mt-2">
+                                    <small class="text-muted">This dictionary is referenced by @Model.DictionaryReferenceWords.Count() words in the system.</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No word references yet</span>
+                            }
+                        </dd>
+                    </dl>
+
+                    <hr>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                        <a asp-action="Edit" asp-route-id="@Model?.ID" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model?.ID" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

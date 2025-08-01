@@ -1,0 +1,700 @@
+﻿@model Word
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Word</h4>
+<hr />
+<div class="row">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-4">
+        <form method="post" asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="WordId" />
+
+            <div class="form-group">
+                <label asp-for="Word_text" class="control-label"></label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Language"></label>
+                <select asp-for="Language" class="form-control">
+                    @foreach (var item in ViewBag.Languages as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Class"></label>
+                <select asp-for="Class" class="form-control">
+                    @foreach (var item in ViewBag.Class as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Root Search and Selection -->
+            <div class="form-group">
+                <label class="control-label">Search for Root</label>
+                <div class="input-group">
+                    <input type="text" id="RootSearchInput" class="form-control" placeholder="Type to search roots..." autocomplete="off" />
+                    <div class="input-group-append">
+                        <button type="button" id="ClearRootBtn" class="btn btn-outline-secondary">Clear</button>
+                    </div>
+                </div>
+                <div id="RootSearchResults" class="search-results" style="display: none;"></div>
+                <input type="hidden" asp-for="RootID" id="RootIDHidden" />
+                <div id="SelectedRoot" class="selected-item" style="@(Model.RootID.HasValue ? "" : "display: none;")">
+                    <span class="selected-text">@ViewData["RootSearch"]</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-selection">×</button>
+                </div>
+                <span asp-validation-for="RootID" class="text-danger"></span>
+            </div>
+
+            <!-- Group Search and Selection -->
+            <div class="form-group">
+                <label class="control-label">Search for Group</label>
+                <div class="input-group">
+                    <input type="text" id="GroupSearchInput" class="form-control" placeholder="Type to search groups..." autocomplete="off" />
+                    <div class="input-group-append">
+                        <button type="button" id="ClearGroupBtn" class="btn btn-outline-secondary">Clear</button>
+                    </div>
+                </div>
+                <div id="GroupSearchResults" class="search-results" style="display: none;"></div>
+                <input type="hidden" asp-for="GroupID" id="GroupIDHidden" />
+                <div id="SelectedGroup" class="selected-item" style="@(Model.GroupID.HasValue ? "" : "display: none;")">
+                    <span class="selected-text">@ViewData["GroupSearch"]</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-selection">×</button>
+                </div>
+                <span asp-validation-for="GroupID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="notes" class="control-label"></label>
+                <input asp-for="notes" class="form-control" />
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IPA" class="control-label"></label>
+                <input asp-for="IPA" class="form-control" />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Pronunciation" class="control-label"></label>
+                <input asp-for="Pronunciation" class="form-control" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+            </div>
+
+
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<style>
+    .search-results {
+        position: absolute;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #ccc;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .search-result-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+    .selected-item {
+        margin-top: 5px;
+        padding: 5px 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .form-group {
+        position: relative;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            let rootSearchTimeout;
+            let groupSearchTimeout;
+
+            // Hide search input if item is already selected
+            if ($('#SelectedRoot').is(':visible')) {
+                $('#RootSearchInput').hide();
+            }
+            if ($('#SelectedGroup').is(':visible')) {
+                $('#GroupSearchInput').hide();
+            }
+
+            // Root search functionality
+            $('#RootSearchInput').on('input', function () {
+                const searchText = $(this).val().trim();
+
+                clearTimeout(rootSearchTimeout);
+
+                if (searchText.length < 2) {
+                    $('#RootSearchResults').hide().empty();
+                    return;
+                }
+
+                rootSearchTimeout = setTimeout(function() {
+                    $.get('/Words/SearchRoots', { searchTerm: searchText })
+                        .done(function(data) {
+                            displaySearchResults(data, '#RootSearchResults', 'root');
+                        })
+                        .fail(function() {
+                            console.error('Failed to search roots');
+                        });
+                }, 300);
+            });
+
+            // Group search functionality
+            $('#GroupSearchInput').on('input', function () {
+                const searchText = $(this).val().trim();
+
+                clearTimeout(groupSearchTimeout);
+
+                if (searchText.length < 2) {
+                    $('#GroupSearchResults').hide().empty();
+                    return;
+                }
+
+                groupSearchTimeout = setTimeout(function() {
+                    $.get('/Words/SearchGroups', { searchTerm: searchText })
+                        .done(function(data) {
+                            displaySearchResults(data, '#GroupSearchResults', 'group');
+                        })
+                        .fail(function() {
+                            console.error('Failed to search groups');
+                        });
+                }, 300);
+            });
+
+            // Display search results
+            function displaySearchResults(data, containerSelector, type) {
+                const container = $(containerSelector);
+                container.empty();
+
+                if (data && data.length > 0) {
+                    data.forEach(function(item) {
+                        const resultItem = $('<div class="search-result-item"></div>')
+                            .text(item.text)
+                            .data('value', item.value)
+                            .data('text', item.text)
+                            .click(function() {
+                                selectItem($(this), type);
+                            });
+                        container.append(resultItem);
+                    });
+                    container.show();
+                } else {
+                    container.append('<div class="search-result-item">No results found</div>');
+                    container.show();
+                }
+            }
+
+            // Select an item
+            function selectItem(element, type) {
+                const value = element.data('value');
+                const text = element.data('text');
+
+                if (type === 'root') {
+                    $('#RootIDHidden').val(value);
+                    $('#RootSearchInput').val('').hide();
+                    $('#RootSearchResults').hide();
+                    $('#SelectedRoot .selected-text').text(text);
+                    $('#SelectedRoot').show();
+                } else if (type === 'group') {
+                    $('#GroupIDHidden').val(value);
+                    $('#GroupSearchInput').val('').hide();
+                    $('#GroupSearchResults').hide();
+                    $('#SelectedGroup .selected-text').text(text);
+                    $('#SelectedGroup').show();
+                }
+            }
+
+            // Remove selection
+            $('#SelectedRoot .remove-selection').click(function() {
+                $('#RootIDHidden').val('');
+                $('#RootSearchInput').val('').show();
+                $('#SelectedRoot').hide();
+            });
+
+            $('#SelectedGroup .remove-selection').click(function() {
+                $('#GroupIDHidden').val('');
+                $('#GroupSearchInput').val('').show();
+                $('#SelectedGroup').hide();
+            });
+
+            // Clear buttons
+            $('#ClearRootBtn').click(function() {
+                $('#RootIDHidden').val('');
+                $('#RootSearchInput').val('').show();
+                $('#RootSearchResults').hide();
+                $('#SelectedRoot').hide();
+            });
+
+            $('#ClearGroupBtn').click(function() {
+                $('#GroupIDHidden').val('');
+                $('#GroupSearchInput').val('').show();
+                $('#GroupSearchResults').hide();
+                $('#SelectedGroup').hide();
+            });
+
+            // Hide search results when clicking outside
+            $(document).click(function(e) {
+                if (!$(e.target).closest('.form-group').length) {
+                    $('.search-results').hide();
+                }
+            });
+        });
+    </script>
+}
+@* @model Word
+
+<h2>Edit Word</h2>
+
+<form asp-action="Edit">
+    <input type="hidden" asp-for="WordId" />
+
+    <div class="form-group">
+        <label asp-for="Word_text">Word Text</label>
+        <input asp-for="Word_text" class="form-control" />
+        <span asp-validation-for="Word_text" class="text-danger"></span>
+    </div>
+
+    <!-- Root Search -->
+    <div class="form-group">
+        <label for="searchRoot" class="control-label">Search Root</label>
+        <input type="text" id="searchRoot" class="form-control" placeholder="Type to search..." />
+    </div>
+    <div class="form-group">
+        <label for="RootID">Root</label>
+        <select id="RootID" name="RootID" class="form-control">
+            <option value="">Select a root</option>
+            @if (Model.RootID.HasValue)
+            {
+                <option value="@Model.RootID" selected>@ViewData["RootSearch"]</option>
+            }
+        </select>
+    </div>
+
+    <!-- Group Search -->
+    <div class="form-group">
+        <label for="searchGroup" class="control-label">Search Group</label>
+        <input type="text" id="searchGroup" class="form-control" placeholder="Type to search..." />
+    </div>
+    <div class="form-group">
+        <label for="GroupID">Group</label>
+        <select id="GroupID" name="GroupID" class="form-control">
+            <option value="">Select a group</option>
+            @if (Model.GroupID.HasValue)
+            {
+                <option value="@Model.GroupID" selected>@ViewData["GroupSearch"]</option>
+            }
+        </select>
+    </div>
+
+    <!-- Other fields -->
+    <div class="form-group">
+        <label asp-for="Language"></label>
+        <select asp-for="Language" class="form-control">
+            @foreach (var item in ViewBag.Languages as SelectList)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Class">Class</label>
+        <input asp-for="Class" class="form-control" />
+        <span asp-validation-for="Class" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="notes">Notes</label>
+        <textarea asp-for="notes" class="form-control"></textarea>
+        <span asp-validation-for="notes" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Function to filter dropdown options
+            function filterDropdown(searchText, dropdownId) {
+                $(`#${dropdownId} option`).each(function () {
+                    var optionText = $(this).text().toLowerCase();
+                    if (optionText.includes(searchText)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+                $(`#${dropdownId}`).trigger('change');
+            }
+
+            // Root search functionality
+            $('#searchRoot').on('input', function () {
+                var searchText = $(this).val().toLowerCase();
+                filterDropdown(searchText, 'RootID');
+            });
+
+            // Group search functionality
+            $('#searchGroup').on('input', function () {
+                var searchText = $(this).val().toLowerCase();
+                filterDropdown(searchText, 'GroupID');
+            });
+
+            // Fetch and populate Root options dynamically
+            $('#searchRoot').on('input', function () {
+                var searchText = $(this).val().trim();
+                if (searchText.length >= 2) { // Only search if 2 or more characters are typed
+                    $.getJSON('/Word/SearchRoots', { searchTerm: searchText }, function (data) {
+                        $('#RootID').empty().append('<option value="">Select a root</option>');
+                        $.each(data, function (index, item) {
+                            $('#RootID').append(`<option value="${item.wordId}">${item.word_text}</option>`);
+                        });
+                    });
+                }
+            });
+
+            // Fetch and populate Group options dynamically
+            $('#searchGroup').on('input', function () {
+                var searchText = $(this).val().trim();
+                if (searchText.length >= 2) { // Only search if 2 or more characters are typed
+                    $.getJSON('/Word/SearchGroups', { searchTerm: searchText }, function (data) {
+                        $('#GroupID').empty().append('<option value="">Select a group</option>');
+                        $.each(data, function (index, item) {
+                            $('#GroupID').append(`<option value="${item.groupID}">${item.groupName}</option>`);
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+} *@
+@* @model Word
+
+<h2>Edit Word</h2>
+
+<form asp-action="Edit">
+    <input type="hidden" asp-for="WordId" />
+
+    <div class="form-group">
+        <label asp-for="Word_text">Word Text</label>
+        <input asp-for="Word_text" class="form-control" />
+        <span asp-validation-for="Word_text" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label for="searchRoot" class="control-label">Search Root</label>
+        <input type="text" id="searchRoot" class="form-control" placeholder="Type to search..." />
+    </div>
+    <div class="form-group">
+        <label for="RootSearch">Root Search</label>
+        <input type="text" id="RootSearch" name="RootSearch" value="@ViewData["RootSearch"]" class="form-control" placeholder="Search roots..." />
+        <select id="RootID" name="RootID" class="form-control">
+            <option value="">Select a root</option>
+            @if (Model.RootID.HasValue)
+            {
+                <option value="@Model.RootID" selected>@ViewData["RootSearch"]</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="GroupSearch">Group Search</label>
+        <input type="text" id="GroupSearch" name="GroupSearch" value="@ViewData["GroupSearch"]" class="form-control" placeholder="Search groups..." />
+        <select id="GroupID" name="GroupID" class="form-control">
+            <option value="">Select a group</option>
+            @if (Model.GroupID.HasValue)
+            {
+                <option value="@Model.GroupID" selected>@ViewData["GroupSearch"]</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Language"></label>
+        <select asp-for="Language" class="form-control">
+            @foreach (var item in ViewBag.Languages as SelectList)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Class">Class</label>
+        <input asp-for="Class" class="form-control" />
+        <span asp-validation-for="Class" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="notes">Notes</label>
+        <textarea asp-for="notes" class="form-control"></textarea>
+        <span asp-validation-for="notes" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form> *@
+
+@* <script>
+    // Root search
+    document.getElementById('RootSearch').addEventListener('input', function () {
+        const searchTerm = this.value;
+
+        fetch(`/Words/SearchRoots?searchTerm=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.json())
+            .then(data => {
+                const rootDropdown = document.getElementById('RootID');
+                rootDropdown.innerHTML = '';
+
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select a root';
+                rootDropdown.appendChild(defaultOption);
+
+                // Add fetched options
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.WordId;
+                    option.textContent = item.Word_text;
+                    rootDropdown.appendChild(option);
+                });
+
+                // Preserve selected value
+                const selectedRoot = '@(Model.RootID.HasValue ? Model.RootID.Value.ToString() : "")';
+                if (selectedRoot !== '') {
+                    const selectedOption = rootDropdown.querySelector(`option[value="${selectedRoot}"]`);
+                    if (selectedOption) {
+                        rootDropdown.value = selectedRoot;
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching roots:', error));
+    });
+
+    // Group search
+    document.getElementById('GroupSearch').addEventListener('input', function () {
+        const searchTerm = this.value;
+
+        fetch(`/Words/SearchGroups?searchTerm=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.json())
+            .then(data => {
+                const groupDropdown = document.getElementById('GroupID');
+                groupDropdown.innerHTML = '';
+
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select a group';
+                groupDropdown.appendChild(defaultOption);
+
+                // Add fetched options
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.GroupID;
+                    option.textContent = item.GroupName;
+                    groupDropdown.appendChild(option);
+                });
+
+                // Preserve selected value
+                const selectedGroup = '@(Model.GroupID.HasValue ? Model.GroupID.Value.ToString() : "")';
+                if (selectedGroup !== '') {
+                    const selectedOption = groupDropdown.querySelector(`option[value="${selectedGroup}"]`);
+                    if (selectedOption) {
+                        groupDropdown.value = selectedGroup;
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching groups:', error));
+    });
+</script> *@
+
+
+
+
+
+@* @model Word
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Word</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="WordId" />
+            <div class="form-group">
+                <label asp-for="Word_text" class="control-label"></label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Language"></label>
+                <select asp-for="Language" class="form-control">
+                    @foreach (var item in ViewBag.Languages as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="Class" class="control-label"></label>
+                <input asp-for="Class" class="form-control" />
+                <span asp-validation-for="Class" class="text-danger"></span>
+            </div>
+
+            <!-- Search for GroupID -->
+            <div class="form-group">
+                <label for="searchGroup">Search Groups</label>
+                <input type="text" id="searchGroup" class="form-control" placeholder="Type to search groups..." />
+            </div>
+            <div class="form-group">
+                <label asp-for="GroupID"></label>
+                <select asp-for="GroupID" class="form-control" id="GroupID">
+                    <option value="">NoGroup</option>
+                    @foreach (var item in ViewBag.GroupID as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Search for RootID -->
+            <div class="form-group">
+                <label for="searchRoot">Search Roots</label>
+                <input type="text" id="searchRoot" class="form-control" placeholder="Type to search roots..." />
+            </div>
+            <div class="form-group">
+                <label asp-for="RootID"></label>
+                <select asp-for="RootID" class="form-control" id="RootID">
+                    <option value="">Origin</option>
+                    @foreach (var item in ViewBag.RootID as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="notes" class="control-label"></label>
+                <input asp-for="notes" class="form-control" />
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IPA" class="control-label"></label>
+                <input asp-for="IPA" class="form-control" />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Pronunciation" class="control-label"></label>
+                <input asp-for="Pronunciation" class="form-control" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="IsDrevWord" /> @Html.DisplayNameFor(model => model.IsDrevWord)
+                </label>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Filter GroupID dropdown
+            $('#searchGroup').on('input', function () {
+                var searchText = $(this).val().toLowerCase();
+                $('#GroupID option').each(function () {
+                    var optionText = $(this).text().toLowerCase();
+                    if (optionText.includes(searchText)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // Filter RootID dropdown
+            $('#searchRoot').on('input', function () {
+                var searchText = $(this).val().toLowerCase();
+                $('#RootID option').each(function () {
+                    var optionText = $(this).text().toLowerCase();
+                    if (optionText.includes(searchText)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+        });
+    </script>
+} *@

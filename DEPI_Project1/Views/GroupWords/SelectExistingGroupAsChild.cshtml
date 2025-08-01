@@ -1,0 +1,352 @@
+﻿@model object
+@{
+    ViewData["Title"] = "Select Existing Group as Child";
+}
+
+<h1>Select Existing Group as Child</h1>
+<h4>Parent Group: @ViewBag.ParentGroupName</h4>
+<hr />
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <form method="get">
+            <input type="hidden" name="parentGroupID" value="@ViewBag.ParentGroupID" />
+            
+            <!-- Search Input Row -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search groups by name or words..." 
+                               value="@ViewBag.SearchText">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search Type Options Row -->
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Group Name Search Type:</label>
+                    <select name="groupSearchType" class="form-select">
+                        @if (ViewBag.SearchType == "exact")
+                        {
+                            <option value="exact" selected>Exact Word</option>
+                        }
+                        else
+                        {
+                            <option value="exact">Exact Word</option>
+                        }
+
+                        @if (ViewBag.SearchType == "contain")
+                        {
+                            <option value="contain" selected>Contains</option>
+                        }
+                        else
+                        {
+                            <option value="contain">Contains</option>
+                        }
+
+                        @if (ViewBag.SearchType == "start")
+                        {
+                            <option value="start" selected>Starts With</option>
+                        }
+                        else
+                        {
+                            <option value="start">Starts With</option>
+                        }
+
+                        @if (ViewBag.SearchType == "end")
+                        {
+                            <option value="end" selected>Ends With</option>
+                        }
+                        else
+                        {
+                            <option value="end">Ends With</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Words Search Type:</label>
+                    <select name="wordSearchType" class="form-select">
+                        @if (ViewBag.SearchType == "exact")
+                        {
+                            <option value="exact" selected>Exact Word</option>
+                        }
+                        else
+                        {
+                            <option value="exact">Exact Word</option>
+                        }
+
+                        @if (ViewBag.SearchType == "contain")
+                        {
+                            <option value="contain" selected>Contains</option>
+                        }
+                        else
+                        {
+                            <option value="contain">Contains</option>
+                        }
+
+                        @if (ViewBag.SearchType == "start")
+                        {
+                            <option value="start" selected>Starts With</option>
+                        }
+                        else
+                        {
+                            <option value="start">Starts With</option>
+                        }
+
+                        @if (ViewBag.SearchType == "end")
+                        {
+                            <option value="end" selected>Ends With</option>
+                        }
+                        else
+                        {
+                            <option value="end">Ends With</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Search Results Info -->
+@if (!string.IsNullOrEmpty(ViewBag.SearchText))
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        Searching for "<strong>@ViewBag.SearchText</strong>" using:
+        <br>
+        <small>
+            • Group names: <strong>@ViewBag.GroupSearchType</strong> search
+            <br>
+            • Words in groups: <strong>@ViewBag.WordSearchType</strong> search
+        </small>
+    </div>
+}
+
+<!-- Available Groups -->
+@if (ViewBag.AvailableGroups != null && ((List<GroupWord>)ViewBag.AvailableGroups).Any())
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Available Groups (@((List<GroupWord>)ViewBag.AvailableGroups).Count)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Group Name</th>
+                            <th>Origin Language</th>
+                            <th>Etymology Word</th>
+                            <th>Words Count</th>
+                            <th>Matching Words</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var availableGroup in (List<GroupWord>)ViewBag.AvailableGroups)
+                        {
+                            var groupIndex = ((List<GroupWord>)ViewBag.AvailableGroups).IndexOf(availableGroup);
+                            <tr>
+                                <td>
+                                    <strong>@availableGroup.Name</strong>
+                                    @if (!string.IsNullOrEmpty(availableGroup.Notes))
+                                    {
+                                        <br><small class="text-muted">@availableGroup.Notes</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(availableGroup.OriginLanguage))
+                                    {
+                                        <span class="badge bg-secondary">@availableGroup.OriginLanguage</span>
+                                    }
+                                </td>
+                                <td>@availableGroup.EtymologyWord</td>
+                                <td>
+                                    <span class="badge bg-info">@(availableGroup.Words?.Count ?? 0) words</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(ViewBag.SearchText as string) && availableGroup.Words != null)
+                                    {
+                                        var searchText = ViewBag.SearchText.ToString();
+                                        var wordSearchType = ViewBag.WordSearchType.ToString();
+                                        var allMatchingWords = availableGroup.Words.Where(w => {
+                                            var normalizedWord = w.Word_text?.ToLowerInvariant() ?? "";
+                                            var normalizedSearch = searchText.ToLowerInvariant();
+                                            switch (wordSearchType)
+                                            {
+                                                case "exact": return normalizedWord == normalizedSearch;
+                                                case "start": return normalizedWord.StartsWith(normalizedSearch);
+                                                case "end": return normalizedWord.EndsWith(normalizedSearch);
+                                                default: return normalizedWord.Contains(normalizedSearch);
+                                            }
+                                        }).ToList();
+                                        
+                                        if (allMatchingWords.Any())
+                                        {
+                                            var previewWords = allMatchingWords.Take(3).ToList();
+                                            <div class="matching-words-container">
+                                                <!-- Preview words -->
+                                                <div class="preview-words">
+                                                    @foreach (var word in previewWords)
+                                                    {
+                                                        <span class="badge bg-success">@word.Word_text (@word.Language ,@word.Class )</span>
+                                                    }
+                                                </div>
+                                                
+                                                @if (allMatchingWords.Count > 3)
+                                                {
+                                                    <!-- Show more button -->
+                                                    <button class="btn btn-sm btn-outline-primary mt-1" 
+                                                            type="button" 
+                                                            data-bs-toggle="collapse" 
+                                                            data-bs-target="#matchingWords_@groupIndex" 
+                                                            aria-expanded="false">
+                                                        <i class="bi bi-chevron-down expand-icon"></i>
+                                                        <span class="toggle-text">Show @(allMatchingWords.Count - 3) more</span>
+                                                    </button>
+                                                    
+                                                    <!-- Collapsible content -->
+                                                    <div class="collapse mt-2" id="matchingWords_@groupIndex">
+                                                        <div class="card card-body p-2 bg-light">
+                                                            <div class="row">
+                                                                @foreach (var word in allMatchingWords.Skip(3))
+                                                                {
+                                                                    <div class="col-auto mb-1">
+                                                                        <span class="badge bg-success">@word.Word_text (@word.Language ,@word.Class )</span>
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else if (allMatchingWords.Count <= 3 && allMatchingWords.Count > 0)
+                                                {
+                                                    <div class="mt-1">
+                                                        <small class="text-muted">
+                                                            <i class="bi bi-check-circle"></i> 
+                                                            @allMatchingWords.Count matching word@(allMatchingWords.Count == 1 ? "" : "s")
+                                                        </small>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">
+                                                <i class="bi bi-dash-circle"></i> No matching words
+                                            </small>
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="AddExistingGroupAsChild" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="parentGroupID" value="@ViewBag.ParentGroupID" />
+                                        <input type="hidden" name="childGroupID" value="@availableGroup.ID" />
+                                        <div class="mb-2">
+                                            <select name="isCompound" class="form-control form-control-sm" >
+                                                <option value="">Relation</option>
+                                                <option value="true">Compound</option>
+                                                <option value="false">Derived</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-success btn-sm"
+                                                onclick="return confirm('Add @availableGroup.Name as child group?');">
+                                            <i class="bi bi-plus-circle"></i> Add as Child
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        @if (string.IsNullOrEmpty(ViewBag.SearchText as string))
+        {
+            <text>Please enter a search term to find groups.</text>
+        }
+        else
+        {
+            <text>No groups found matching your search criteria "@ViewBag.SearchText".</text>
+        }
+    </div>
+}
+
+<div class="mt-3">
+    <a asp-action="Details" asp-route-id="@ViewBag.ParentGroupID" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Group Details
+    </a>
+</div>
+
+<style>
+    .matching-words-container {
+        max-width: 300px;
+    }
+    
+    .preview-words .badge {
+        font-size: 0.75em;
+    }
+    
+    .expand-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    button[aria-expanded="true"] .expand-icon {
+        transform: rotate(180deg);
+    }
+    
+    .card.card-body {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+    
+    .badge.bg-success {
+        background-color: #198754 !important;
+    }
+    
+    .btn-outline-primary {
+        font-size: 0.8em;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
+<script>
+    // Add smooth animation and icon rotation
+    document.addEventListener('DOMContentLoaded', function() {
+        var collapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]');
+        
+        collapseElements.forEach(function(element) {
+            element.addEventListener('click', function() {
+                var target = document.querySelector(this.getAttribute('data-bs-target'));
+                var toggleText = this.querySelector('.toggle-text');
+                var icon = this.querySelector('.expand-icon');
+                
+                // Update text based on collapse state
+                target.addEventListener('shown.bs.collapse', function() {
+                    toggleText.textContent = 'Show less';
+                });
+                
+                target.addEventListener('hidden.bs.collapse', function() {
+                    var totalWords = toggleText.textContent.match(/\d+/);
+                    if (totalWords) {
+                        toggleText.textContent = 'Show ' + totalWords[0] + ' more';
+                    }
+                });
+            });
+        });
+    });
+</script>

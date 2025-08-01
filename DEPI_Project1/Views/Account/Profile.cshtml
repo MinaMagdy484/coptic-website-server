@@ -1,0 +1,18 @@
+﻿@model object
+
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<h2>Profile</h2>
+
+@if (Model != null)
+{
+    <p>Username: @Model.GetType().GetProperty("Username")?.GetValue(Model)</p>
+    <p>Email: @Model.GetType().GetProperty("Email")?.GetValue(Model)</p>
+    <p>Name: @Model.GetType().GetProperty("Name")?.GetValue(Model)</p>
+}
+else
+{
+    <p>No profile information available.</p>
+}

@@ -1,0 +1,225 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+body {
+    display: flex;
+    /* important */
+    background: url('p1.jpg') no-repeat;
+    background-position: center;
+    background-size: cover;
+    min-height: 100vh;
+    /*minim height*/
+    justify-content: center;
+}
+
+.first {
+    display: inline-block;
+    background-color: aliceblue;
+    height: 420px;
+    width: 600px;
+    margin-top: 170px;
+    border-radius: 20px;
+    box-shadow: 10px;
+    overflow: hidden;
+    /* to write text in div*/
+}
+
+.login {
+    display: inline-block;
+    background-color: transparent;
+    color: black;
+    width: 50%;
+    height: 100%;
+    border-radius: 20px 0 0 20px;
+    overflow: hidden;
+    /* to write text in div*/
+}
+
+.login h2 {
+    padding: 70px 0 0 110px;
+    font-family: Arial Narrow;
+}
+
+.login .icons {
+    display: flex;
+    background-color: transparent;
+    width: 75%;
+    height: 60px;
+    margin: 5px 0 0 40px;
+    padding: 10px;
+    font-size: 30px;
+    justify-content: space-between;
+}
+
+.login .icons i {
+    display: flex;
+    border: none;
+    border: 1px solid rgb(183, 176, 176);
+    padding: 3px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#p1 {
+
+    text-align: center;
+    opacity: 50%;
+}
+
+.data {
+    width: 95%;
+    height: 50px;
+    margin: 5px 0 8px 10px;
+    border-radius: 10px;
+}
+
+.data input {
+    background-color: #DDE6ED;
+    border: none;
+    outline: none;
+    /*عشان لما تختاره ميعملش خط حوليه*/
+    width: 100%;
+    height: 100%;
+    padding-left: 10px;
+    border-radius: 10px;
+}
+
+ input::placeholder {
+    color: black;
+    font-weight: 800;
+    opacity: 50%;
+}
+
+#p1 a {
+    text-decoration: none;
+    color: gray;
+    position: relative; /* تحديد الوضع إلى نسبي للعنصر الأب */
+}
+#p1 a::after {
+    content: '';  /*عشان الافتر تشتغل*/
+    height: 2px;
+    background-color: black;
+    width: 0;
+    transition: width 1s;
+    position: absolute; /* تحديد الوضع إلى مطلق للعنصر الفرعي */
+    bottom: -3px; /* تحديد الموضع أسفل العنصر الأب */
+    left: 0; /* تحديد الموضع على اليسار من العنصر الأب */
+}
+
+#p1 a:hover::after {
+    width: 100%; /* ينمو إلى عرض 100% عند التحويل */
+}
+#b1{
+  display: flex;
+  width:50%;
+  height: 50px;
+  margin:10px 0 0 78px;
+  justify-content: center;
+  padding-top: calc(4%) ;
+  border-radius: 30px;
+  background-color: transparent;
+  border:3px solid  #001B79;
+  color:  #001B79;
+  font-size: 18px;
+  font-family: Arial Narrow;
+  transition-duration: 1.2s;
+}
+#b1:hover{
+    color: white;
+    background-color: #001B79;
+    cursor: pointer;
+}
+.signup {
+    display: inline-block;
+    /* important to shown besides*/
+    background-color: #001B79;
+    color: aliceblue;
+    width: 49.26%;
+    height: 100%;
+    border-radius: 90px 20px 20px 90px;
+    overflow: hidden;
+    /* to write text in div*/
+}
+#p2{
+    text-align: center;
+    margin-top: 100px;
+    font-size: 20px;
+}
+#p3{
+    padding: 20px;
+}
+#b2{
+    width: 60%;
+    height: 50px;
+    margin: 20px;
+    margin-left: 60px;
+    color: aliceblue;
+    background-color: transparent;
+    outline: none;
+    border: 2px solid whitesmoke;
+    font-size: 20px;
+    border-radius: 20px;
+    transition-duration: 1.2s;
+}
+#b2:hover{
+    color: #001B79;
+    background-color: aliceblue ;
+    cursor: pointer;
+}
+#second{
+    display: none;
+}
+#second .signup{
+    display: inline-block;
+    /* important to shown besides*/
+    background-color: #001B79;
+    color: aliceblue;
+    width: 49.26%;
+    height: 100%;
+    border-radius: 20px 90px 90px 20px;
+    overflow: hidden;
+    /* to write text in div*/
+}
+#second h2{
+    padding: 20px 0 0 120px;
+    margin: 5px;
+}
+.datan{
+    width: 95%;
+    height: 50px;
+    margin: 5px 0 8px 10px;
+    border-radius: 10px;
+}
+.datan input {
+    background-color: #DDE6ED;
+    border: none;
+    outline: none;
+    /*عشان لما تختاره ميعملش خط حوليه*/
+    width: 49%;
+    height: 100%;
+    padding-left: 10px;
+    border-radius: 10px;
+}
+.datae{
+   
+    width: 95%;
+    height: auto;
+    margin: 5px 0 8px 10px;
+    border-radius: 10px;
+}
+.datae input{
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
+    background-color: #DDE6ED;
+    border: none;
+    outline: none;
+    margin: 5px 0 5px;
+    padding: 5px;
+    
+}
+

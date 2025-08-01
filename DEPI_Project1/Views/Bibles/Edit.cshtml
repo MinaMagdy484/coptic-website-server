@@ -1,0 +1,102 @@
+﻿@model Bible
+
+@{
+    ViewData["Title"] = "Edit Bible Verse";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-4">Edit Bible Verse</h1>
+            <p class="lead">Update an existing Bible verse in the database.</p>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Bible Verse Details</h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="BibleID" />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Book" class="form-label">Book Number</label>
+                            <select asp-for="Book" class="form-select" asp-items="ViewBag.BibleBooks" disabled>
+                                <option value="">-- Select Book --</option>
+                            </select>
+                            <span asp-validation-for="Book" class="text-danger"></span>
+                            <small class="form-text text-muted">Select the Bible book</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Chapter" class="form-label">Chapter</label>
+                            <input asp-for="Chapter" class="form-control" readonly/>
+                            <span asp-validation-for="Chapter" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Verse" class="form-label">Verse</label>
+                            <input asp-for="Verse" class="form-control" readonly/>
+                            <span asp-validation-for="Verse" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Language" class="form-label">Language</label>
+                            <select asp-for="Language" class="form-select" asp-items="ViewBag.Languages" disabled>
+                                <option value="">-- Select Language --</option>
+                            </select>
+                            <span asp-validation-for="Language" class="text-danger"></span>
+                        </div>
+
+                        
+                    </div>
+                </div>
+                        <div class="form-group mb-3">
+                            <label asp-for="Edition" class="form-label">Edition</label>
+                            <input asp-for="Edition" class="form-control" />
+                            <span asp-validation-for="Edition" class="text-danger"></span>
+                            <small class="form-text text-muted">Enter the Bible edition (e.g., KJV, NIV)</small>
+                        </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Text" class="form-label">Verse Text</label>
+                    <textarea asp-for="Text" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Text" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Pronunciation" class="form-label">Pronunciation</label>
+                    <input asp-for="Pronunciation" class="form-control" />
+                    <span asp-validation-for="Pronunciation" class="text-danger"></span>
+                    <small class="form-text text-muted">Optional: Add pronunciation guide</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Notes" class="form-label">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="Notes" class="text-danger"></span>
+                    <small class="form-text text-muted">Optional: Add any additional notes</small>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Save Changes
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to List
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

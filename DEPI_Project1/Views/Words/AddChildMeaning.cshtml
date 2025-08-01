@@ -1,0 +1,26 @@
+﻿@{
+    ViewBag.Title = "Add Child Meaning";
+    int parentMeaningId = ViewBag.ParentMeaningId;
+}
+
+<h2>Add Child Meaning</h2>
+<h2>@ViewBag.WordId</h2>
+<form asp-action="AddChildMeaning" asp-route-wordId="@ViewBag.WordId" method="post">
+    <div class="form-group">
+        <label for="meaningText">Meaning Text</label>
+        <input type="text" class="form-control" id="meaningText" name="meaningText" required />
+    </div>
+    <div class="form-group">
+        <label for="notes">Notes (optional)</label>
+        <textarea class="form-control" id="notes" name="notes"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="language">Language</label>
+        <select class="form-control" id="language" name="language" asp-items="ViewBag.Languages">
+            <option value="">-- Select Language --</option>
+        </select>
+    </div>
+
+    <input type="hidden" name="parentMeaningId" value="@parentMeaningId" />
+    <button type="submit" class="btn btn-primary">Add Child Meaning</button>
+</form>

@@ -1,0 +1,65 @@
+﻿@model Example
+
+@{
+    ViewData["Title"] = "Edit Example";
+}
+
+<h2>Edit Example</h2>
+
+<form asp-action="EditExample">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="ID" />
+    <input type="hidden" asp-for="WordMeaningID" />
+    <div class="form-group">
+        <label asp-for="ExampleText" class="control-label"></label>
+        <input asp-for="ExampleText" class="form-control" />
+        <span asp-validation-for="ExampleText" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Reference" class="control-label"></label>
+        <input asp-for="Reference" class="form-control" />
+        <span asp-validation-for="Reference" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Pronunciation" class="control-label"></label>
+        <input asp-for="Pronunciation" class="form-control" />
+        <span asp-validation-for="Pronunciation" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Notes" class="control-label"></label>
+        <input asp-for="Notes" class="form-control" />
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Language"></label>
+        <select asp-for="Language" class="form-control">
+            @foreach (var item in ViewBag.Languages as SelectList)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+
+<div>
+    <a asp-action="Details" asp-controller="Words" asp-route-id="@ViewBag.WordId">Back to Word Details</a>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}

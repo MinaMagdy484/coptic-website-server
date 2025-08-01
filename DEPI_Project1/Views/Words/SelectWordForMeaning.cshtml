@@ -1,0 +1,177 @@
+﻿@{
+    ViewData["Title"] = "Select Word for Meaning";
+}
+
+<h2>Select Word for Meaning</h2>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Adding word to meaning: "@ViewBag.MeaningText"</h5>
+    </div>
+    <div class="card-body">
+        <!-- Search Form -->
+        <form method="get" class="mb-4">
+            <input type="hidden" name="meaningId" value="@ViewBag.MeaningId" />
+            <input type="hidden" name="currentWordId" value="@ViewBag.CurrentWordId" />
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="search">Search Words:</label>
+                        <input type="text" id="search" name="search" value="@ViewBag.SearchText" 
+                               class="form-control" placeholder="Enter word to search..." />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="searchType">Search Type:</label>
+                        <select id="searchType" name="searchType" class="form-select">
+                            @if (ViewBag.SearchType == "exact")
+                            {
+                                <option value="exact" selected>Exact Word</option>
+                            }
+                            else
+                            {
+                                <option value="exact">Exact Word</option>
+                            }
+
+                            @if (ViewBag.SearchType == "contain")
+                            {
+                                <option value="contain" selected>Contains</option>
+                            }
+                            else
+                            {
+                                <option value="contain">Contains</option>
+                            }
+
+                            @if (ViewBag.SearchType == "start")
+                            {
+                                <option value="start" selected>Starts With</option>
+                            }
+                            else
+                            {
+                                <option value="start">Starts With</option>
+                            }
+
+                            @if (ViewBag.SearchType == "end")
+                            {
+                                <option value="end" selected>Ends With</option>
+                            }
+                            else
+                            {
+                                <option value="end">Ends With</option>
+                            }
+
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary form-control">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(ViewBag.SearchText as string))
+        {
+            <div class="alert alert-info">
+                <strong>Search Results:</strong> 
+                Showing results for "<em>@ViewBag.SearchText</em>" using <strong>@ViewBag.SearchType</strong> search.
+                <a href="@Url.Action("SelectWordForMeaning", new { meaningId = ViewBag.MeaningId, currentWordId = ViewBag.CurrentWordId })" 
+                   class="btn btn-sm btn-outline-secondary ms-2">Clear Search</a>
+            </div>
+        }
+
+        <!-- Selection Form -->
+        <form asp-action="SelectWordForMeaning" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="meaningId" value="@ViewBag.MeaningId" />
+            <input type="hidden" name="currentWordId" value="@ViewBag.CurrentWordId" />
+            <input type="hidden" name="search" value="@ViewBag.SearchText" />
+            <input type="hidden" name="searchType" value="@ViewBag.SearchType" />
+            
+            <div class="form-group mb-3">
+                <label for="selectedWordId">Select Word:</label>
+                <select name="selectedWordId" id="selectedWordId" class="form-select" required>
+                    <option value="">-- Select a Word --</option>
+                    @foreach (var word in ViewBag.Words as SelectList)
+                    {
+                        <option value="@word.Value">@word.Text</option>
+                    }
+                </select>
+                @if (!(ViewBag.Words as SelectList).Any())
+                {
+                    <div class="text-muted mt-2">
+                        <i class="bi bi-info-circle"></i> No words found matching your search criteria.
+                    </div>
+                }
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" @(!(ViewBag.Words as SelectList).Any() ? "disabled" : "")>
+                    Add Word to Meaning
+                </button>
+                <a asp-action="Details" asp-route-id="@ViewBag.CurrentWordId" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Add enhanced search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.getElementById('selectedWordId');
+        const searchInput = document.getElementById('search');
+        const searchForm = searchInput.closest('form');
+        
+        // Auto-submit search on Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchForm.submit();
+            }
+        });
+
+        // Auto-submit search when search type changes
+        document.getElementById('searchType').addEventListener('change', function() {
+            if (searchInput.value.trim() !== '') {
+                searchForm.submit();
+            }
+        });
+        
+        // Enhanced select filtering (client-side filtering within results)
+        const originalOptions = Array.from(select.options);
+        
+        function filterSelect(filterText) {
+            if (!filterText) {
+                // Restore all options
+                select.innerHTML = '';
+                originalOptions.forEach(option => select.appendChild(option.cloneNode(true)));
+                return;
+            }
+            
+            const filtered = originalOptions.filter(option => 
+                option.value === '' || 
+                option.textContent.toLowerCase().includes(filterText.toLowerCase())
+            );
+            
+            select.innerHTML = '';
+            filtered.forEach(option => select.appendChild(option.cloneNode(true)));
+        }
+        
+        // Add a quick filter input for the dropdown
+        const quickFilter = document.createElement('input');
+        quickFilter.type = 'text';
+        quickFilter.className = 'form-control form-control-sm mt-1';
+        quickFilter.placeholder = 'Quick filter dropdown...';
+        quickFilter.addEventListener('input', function() {
+            filterSelect(this.value);
+        });
+        
+        select.parentNode.appendChild(quickFilter);
+    });
+</script>

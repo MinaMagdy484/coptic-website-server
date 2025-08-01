@@ -1,0 +1,80 @@
+.course-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px; /* Increased gap between cards */
+    justify-content: center; /* Centering the cards */
+}
+
+.course-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    border: 2px solid #ddd; /* Slightly thicker border */
+    border-radius: 12px; /* Increased border radius for a smoother look */
+    padding: 20px;
+    width: 350px; /* Increased card size */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow for depth */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-image: linear-gradient(to top right, #e0f7fa, #e1bee7); /* Light gradient for a modern look */
+}
+
+    .course-item:hover {
+        transform: translateY(-10px); /* More noticeable hover effect */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Deeper shadow on hover */
+    }
+
+.course-img {
+    width: 100px; /* Increased image size */
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%; /* Circular images */
+    margin-bottom: 15px; /* Added margin for space between image and text */
+    border: 2px solid #007bff; /* Added border to the image */
+}
+
+.course-info {
+    text-align: center; /* Centered text */
+}
+
+    .course-info h3 {
+        margin: 0;
+        font-size: 22px; /* Increased font size for course name */
+        font-weight: bold;
+        color: #007bff; /* Changed color to match the theme */
+    }
+
+    .course-info p {
+        margin: 10px 0;
+        font-size: 16px; /* Slightly larger font for instructor name */
+        color: #555;
+    }
+
+.btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: #fff;
+    border-radius: 50px; /* Rounded buttons */
+}
+
+.btn-info {
+    background-color: #007bff; /* Matching button color */
+    border-color: #007bff;
+}
+
+    .btn-info:hover {
+        background-color: #0056b3; /* Darker shade on hover */
+        border-color: #0056b3;
+    }
+
+.btn-success, .btn-primary {
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 16px;
+}
+
+    .btn-primary:hover, .btn-success:hover {
+        opacity: 0.9;
+    }

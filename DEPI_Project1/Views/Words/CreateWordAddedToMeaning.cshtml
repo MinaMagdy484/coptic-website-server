@@ -1,0 +1,137 @@
+﻿@model Word
+@{
+    ViewData["Title"] = "Create Word Added to Meaning";
+}
+
+<h1>Create Word Added to Meaning</h1>
+
+<h4>Create a new word and link it to the meaning</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="CreateWordAddedToMeaning" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <input type="hidden" name="meaningId" value="@ViewBag.MeaningId" />
+            
+            <!-- Word Text -->
+            <div class="form-group mb-3">
+                <label asp-for="Word_text" class="control-label">Word Text</label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+            
+            <!-- Language -->
+            <div class="form-group mb-3">
+                <label asp-for="Language" class="control-label">Language</label>
+                <select asp-for="Language" class="form-control" asp-items="ViewBag.Languages as SelectList">
+                    <option value="">Please select a language</option>
+                </select>
+                <span asp-validation-for="Language" class="text-danger"></span>
+            </div>
+            
+            <!-- Class (Part of Speech) -->
+            <div class="form-group mb-3">
+                <label asp-for="Class" class="control-label">Part of Speech</label>
+                <select asp-for="Class" class="form-control" asp-items="ViewBag.Class as SelectList">
+                    <option value="">Please select a part of speech</option>
+                </select>
+                <span asp-validation-for="Class" class="text-danger"></span>
+            </div>
+            
+            <!-- Notes -->
+            <div class="form-group mb-3">
+                <label asp-for="notes" class="control-label">Notes</label>
+                <textarea asp-for="notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+            
+            <!-- IPA -->
+            <div class="form-group mb-3">
+                <label asp-for="IPA" class="control-label">IPA (International Phonetic Alphabet)</label>
+                <input asp-for="IPA" class="form-control" />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+            
+            <!-- Pronunciation -->
+            <div class="form-group mb-3">
+                <label asp-for="Pronunciation" class="control-label">Pronunciation</label>
+                <input asp-for="Pronunciation" class="form-control" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+                <small class="form-text text-muted">You can add audio pronunciation after creating the word</small>
+            </div>
+            
+            <!-- Root -->
+            <div class="form-group mb-3">
+                <label asp-for="RootID" class="control-label">Root</label>
+                <select asp-for="RootID" class="form-control" asp-items="ViewBag.RootID as SelectList">
+                    <option value="">No Root</option>
+                </select>
+                <span asp-validation-for="RootID" class="text-danger"></span>
+                <small class="form-text text-muted">Select a root word if this word is derived from another</small>
+            </div>
+            
+            <!-- Group -->
+            <div class="form-group mb-3">
+                <label asp-for="GroupID" class="control-label">Group</label>
+                <select asp-for="GroupID" class="form-control" asp-items="ViewBag.GroupID as SelectList">
+                    <option value="">No Group</option>
+                </select>
+                <span asp-validation-for="GroupID" class="text-danger"></span>
+                <small class="form-text text-muted">Assign this word to a word group if applicable</small>
+            </div>
+            
+
+            
+            <!-- Submit Buttons -->
+            <div class="form-group">
+                <input type="submit" value="Create Word" class="btn btn-primary" />
+                <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Enhanced form functionality
+        $(document).ready(function() {
+            // Auto-focus on Word Text field
+            $('#Word_text').focus();
+            
+            // Form validation feedback
+            $('form').on('submit', function(e) {
+                var isValid = true;
+                
+                // Check required fields
+                if (!$('#Word_text').val().trim()) {
+                    isValid = false;
+                    $('#Word_text').addClass('is-invalid');
+                } else {
+                    $('#Word_text').removeClass('is-invalid');
+                }
+                
+                if (!$('#Language').val()) {
+                    isValid = false;
+                    $('#Language').addClass('is-invalid');
+                } else {
+                    $('#Language').removeClass('is-invalid');
+                }
+                
+                if (!$('#Class').val()) {
+                    isValid = false;
+                    $('#Class').addClass('is-invalid');
+                } else {
+                    $('#Class').removeClass('is-invalid');
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields (Word Text, Language, and Part of Speech).');
+                }
+            });
+        });
+    </script>
+}

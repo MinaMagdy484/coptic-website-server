@@ -1,0 +1,56 @@
+﻿@model GroupExplanation
+
+@{
+    ViewData["Title"] = "Add Group Explanation";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Add Group Explanation</h2>
+            <h4 class="text-muted">Group: @ViewBag.GroupName</h4>
+            <hr />
+
+            <form asp-action="CreateGroupExplanation" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <input type="hidden" asp-for="GroupID" value="@ViewBag.GroupId" />
+
+                <div class="form-group mb-3">
+                    <label asp-for="Language" class="control-label"></label>
+                    <select asp-for="Language" class="form-select" asp-items="ViewBag.Languages">
+                        <option value="">-- Select Language --</option>
+                    </select>
+                    <span asp-validation-for="Language" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Explanation" class="control-label"></label>
+                    <textarea asp-for="Explanation" class="form-control" rows="4" placeholder="Enter the explanation for this group..."></textarea>
+                    <span asp-validation-for="Explanation" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Notes" class="control-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Additional notes (optional)..."></textarea>
+                    <span asp-validation-for="Notes" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Explanation
+                    </button>
+                    <a asp-action="Details" asp-route-id="@ViewBag.GroupId" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Group Details
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

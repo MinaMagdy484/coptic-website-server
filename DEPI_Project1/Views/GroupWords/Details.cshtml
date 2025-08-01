@@ -1,0 +1,741 @@
+﻿@model GroupWord
+@{
+    ViewData["Title"] = "Group Details";
+}
+
+<h1>Group Details</h1>
+
+<div>
+    <h4>Group Information</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            <strong>@Html.DisplayFor(model => model.Name)</strong>
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.OriginLanguage)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.OriginLanguage)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.EtymologyWord)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.EtymologyWord)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Etymology)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Etymology)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Notes)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Notes)
+        </dd>
+    </dl>
+</div>
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Words in this Group</h4>
+            <div class="btn-group">
+                <a asp-action="CreateWordForGroup" asp-route-groupId="@Model.ID"
+                   class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add New Word
+                </a>
+                <a asp-action="SelectWordForGroup" asp-route-groupId="@Model.ID"
+                   class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add Existing Word
+                </a>
+                <a asp-action="AddDefinitionToAllWords" asp-route-groupId="@Model.ID"
+                   class="btn btn-info btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add New Definition
+                </a>
+                <a asp-action="SelectExistingDefinitionForGroup" asp-route-groupId="@Model.ID"
+                   class="btn btn-warning btn-sm">
+                    <i class="bi bi-search"></i> Add Existing Definition
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (ViewBag.GroupedWords != null && ViewBag.UniqueClasses != null)
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Language</th>
+                                @foreach (var wordClass in ViewBag.UniqueClasses)
+                                {
+                                    <th>
+                                        @{
+                                            string displayClass = wordClass == "Unknown" ? "No Class Specified" : wordClass;
+                                            string badgeClass = wordClass == "Unknown" ? "badge bg-warning text-dark" : "badge bg-secondary";
+                                        }
+                                        <span class="@badgeClass">@displayClass</span>
+                                        @if (wordClass == "Unknown")
+                                        {
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="bi bi-exclamation-triangle"></i> Words without class assignment
+                                            </small>
+                                        }
+                                        <div class="btn-group mt-1" role="group">
+                                            <a asp-action="AddDefinitionToWordsByClass"
+                                               asp-route-groupId="@Model.ID"
+                                               asp-route-wordClass="@wordClass"
+                                               class="btn btn-success btn-sm">
+                                                <i class="bi bi-plus-circle"></i> Add New
+                                            </a>
+                                            <a asp-action="SelectExistingDefinitionForWordsByClass"
+                                               asp-route-groupId="@Model.ID"
+                                               asp-route-wordClass="@wordClass"
+                                               class="btn btn-warning btn-sm">
+                                                <i class="bi bi-search"></i> Add Existing
+                                            </a>
+                                        </div>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var languageGroup in ViewBag.GroupedWords)
+                            {
+                                <tr>
+                                    <td>
+                                        @{
+                                            string displayLanguage = languageGroup.Key == "Unknown" ? "No Language Specified" : languageGroup.Key;
+                                            string languageBadgeClass = languageGroup.Key == "Unknown" ? "badge bg-warning text-dark" : "badge bg-primary";
+                                        }
+                                        <span class="@languageBadgeClass">@displayLanguage</span>
+                                        @if (languageGroup.Key == "Unknown")
+                                        {
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="bi bi-exclamation-triangle"></i> Words without language assignment
+                                            </small>
+                                        }
+                                    </td>
+                                    @foreach (var wordClass in ViewBag.UniqueClasses)
+                                    {
+                                        <td>
+                                            @{
+                                                if (languageGroup.Value != null &&
+                                                languageGroup.Value.ContainsKey(wordClass) &&
+                                                languageGroup.Value[wordClass]?.Count > 0)
+                                                {
+                                                    @foreach (var word in languageGroup.Value[wordClass])
+                                                    {
+                                                        <div class="mb-1 d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <a asp-controller="Words"
+                                                                   asp-action="Details"
+                                                                   asp-route-id="@word.WordId"
+                                                                   class="text-decoration-none">
+                                                                    @word.Word_text
+                                                                </a>
+                                                                @if (!string.IsNullOrEmpty(word.notes))
+                                                                {
+                                                                    <small class="text-muted" title="@word.notes">
+                                                                        <i class="bi bi-info-circle"></i>
+                                                                    </small>
+                                                                }
+                                                                @if (string.IsNullOrEmpty(word.Class))
+                                                                {
+                                                                    <small class="text-warning" title="No class specified - consider adding a grammatical class">
+                                                                        <i class="bi bi-exclamation-triangle"></i>
+                                                                    </small>
+                                                                }
+                                                                @if (string.IsNullOrEmpty(word.Language))
+                                                                {
+                                                                    <small class="text-danger" title="No language specified - please add language information">
+                                                                        <i class="bi bi-exclamation-circle"></i>
+                                                                    </small>
+                                                                }
+                                                            </div>
+                                                            <div class="btn-group">
+                                                                <a asp-controller="Words"
+                                                                   asp-action="Edit"
+                                                                   asp-route-id="@word.WordId"
+                                                                   class="btn btn-outline-primary btn-sm"
+                                                                   title="Edit word details">
+                                                                    <i class="bi bi-pencil"></i>
+                                                                </a>
+                                                                <form asp-action="RemoveFromGroup" method="post" style="display:inline;">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="wordId" value="@word.WordId" />
+                                                                    <input type="hidden" name="groupId" value="@Model.ID" />
+                                                                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                                            onclick="return confirm('Are you sure you want to remove this word from the group?');"
+                                                                            title="Remove from group">
+                                                                        <i class="bi bi-x-circle"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Information -->
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <strong>Summary:</strong>
+                        This group contains
+                        @{
+                            var totalWords = 0;
+                            var unknownClassCount = 0;
+                            var unknownLanguageCount = 0;
+                            foreach (var languageGroup in ViewBag.GroupedWords)
+                            {
+                                foreach (var classGroup in languageGroup.Value)
+                                {
+                                    totalWords += classGroup.Value.Count;
+                                    if (classGroup.Key == "Unknown")
+                                    {
+                                        unknownClassCount += classGroup.Value.Count;
+                                    }
+                                }
+                                if (languageGroup.Key == "Unknown")
+                                {
+                                    foreach (var classGroup in languageGroup.Value)
+                                    {
+                                        unknownLanguageCount += classGroup.Value.Count;
+                                    }
+                                }
+                            }
+                        }
+                        @totalWords word(s) across @(((Dictionary<string, Dictionary<string, List<Word>>>)ViewBag.GroupedWords).Count) language(s).
+                        @if (unknownClassCount > 0)
+                        {
+                            <br /><span class="text-warning">
+                                <i class="bi bi-exclamation-triangle"></i> @unknownClassCount word(s) need class assignment.
+                            </span>
+                        }
+                        @if (unknownLanguageCount > 0)
+                        {
+                            <br /><span class="text-danger">
+                                <i class="bi bi-exclamation-circle"></i> @unknownLanguageCount word(s) need language assignment.
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No words are currently assigned to this group.
+                    <div class="mt-2">
+                        <a asp-controller="Words" asp-action="Create" asp-route-groupId="@Model.ID" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Add First Word
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Parent Groups Section -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4><i class="bi bi-arrow-up-circle"></i> Parent Groups</h4>
+            <div class="btn-group">
+                <a asp-action="CreateGroupAsParent" asp-route-ChildGroupID="@Model.ID" asp-route-wordId="" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Create New Parent Group
+                </a>
+                <a asp-action="SelectExistingGroupAsParent" asp-route-childGroupID="@Model.ID" class="btn btn-info btn-sm">
+                    <i class="bi bi-search"></i> Select Existing Group as Parent
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (Model.GroupParents != null && Model.GroupParents.Any())
+            {
+                
+                    int parentIndex = 1;
+                
+                @foreach (var parentRelation in Model.GroupParents)
+                {
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h5 class="mb-0">
+                                    <a asp-action="Details" asp-route-id="@parentRelation.ParentGroup.ID" class="text-decoration-none">
+                                        (@parentIndex) @parentRelation.ParentGroup.Name
+                                    </a>
+                                </h5>
+                                <!-- Relation Type Display -->
+                                <div class="mt-1">
+                                    @{
+                                        var relationText = parentRelation.IsCompound == true ? "Compound" : 
+                                                         parentRelation.IsCompound == false ? "Derived" : 
+                                                         "No specific relation";
+                                        var badgeClass = parentRelation.IsCompound == true ? "bg-success" : 
+                                                       parentRelation.IsCompound == false ? "bg-primary" : 
+                                                       "bg-secondary";
+                                    }
+                                    <span class="badge @badgeClass">
+                                        <i class="bi bi-link-45deg"></i> @relationText Relationship
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <a asp-action="CreateWordForGroup" asp-route-groupId="@parentRelation.ParentGroup.ID" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus"></i> Add Word to Group
+                                </a>
+                                <form asp-action="DeleteGroupRelation" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@parentRelation.ID" />
+                                    <input type="hidden" name="wordId" value="@Model.ID" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this Group Relation?');">
+                                        <i class="bi bi-trash"></i> Remove Relation
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(parentRelation.ParentGroup.OriginLanguage) || !string.IsNullOrEmpty(parentRelation.ParentGroup.EtymologyWord))
+                        {
+                            <p class="text-muted mb-2">
+                                @if (!string.IsNullOrEmpty(parentRelation.ParentGroup.OriginLanguage))
+                                {
+                                    <span><strong>Origin:</strong> @parentRelation.ParentGroup.OriginLanguage</span>
+                                }
+                                @if (!string.IsNullOrEmpty(parentRelation.ParentGroup.EtymologyWord))
+                                {
+                                    <span class="ms-3"><strong>Etymology:</strong> @parentRelation.ParentGroup.EtymologyWord</span>
+                                }
+                            </p>
+                        }
+
+                        @if (parentRelation.ParentGroup.Words != null && parentRelation.ParentGroup.Words.Any())
+                        {
+                            <h6><i class="bi bi-list-ul"></i> Words in this Parent Group (@parentRelation.ParentGroup.Words.Count)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th width="5%">#</th>
+                                            <th width="40%">Word</th>
+                                            <th width="25%">Language</th>
+                                            <th width="30%">Class</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int wordIndex = 1;
+                                        }
+                                        @foreach (var word in parentRelation.ParentGroup.Words.OrderBy(w => w.Language).ThenBy(w => w.Word_text))
+                                        {
+                                            <tr>
+                                                <td>@wordIndex</td>
+                                                <td>
+                                                    <a asp-controller="Words" asp-action="Details" asp-route-id="@word.WordId" class="text-decoration-none">
+                                                        @word.Word_text
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        string displayLanguage = string.IsNullOrEmpty(word.Language) ? "No Language" : word.Language;
+                                                        string languageBadgeClass = string.IsNullOrEmpty(word.Language) ? "bg-warning text-dark" : "bg-info";
+                                                    }
+                                                    <span class="badge @languageBadgeClass">@displayLanguage</span>
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        string displayClass = string.IsNullOrEmpty(word.Class) ? "No Class" : word.Class;
+                                                        string classBadgeClass = string.IsNullOrEmpty(word.Class) ? "bg-warning text-dark" : "bg-secondary";
+                                                    }
+                                                    <span class="badge @classBadgeClass">@displayClass</span>
+                                                </td>
+                                            </tr>
+                                            
+                                                wordIndex++;
+                                            
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle"></i> No words in this parent group yet.
+                            </div>
+                        }
+                    </div>
+                   
+                        parentIndex++;
+                    
+                }
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No parent groups assigned to this group.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Child Groups Section -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4><i class="bi bi-arrow-down-circle"></i> Child Groups</h4>
+            <div class="btn-group">
+                <a asp-action="CreateGroupAsChild" asp-route-parentGroupID="@Model.ID" asp-route-wordId="" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Create New Child Group
+                </a>
+                <a asp-action="SelectExistingGroupAsChild" asp-route-parentGroupID="@Model.ID" class="btn btn-info btn-sm">
+                    <i class="bi bi-search"></i> Select Existing Group as Child
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (Model.GroupChilds != null && Model.GroupChilds.Any())
+            {
+                
+                    int childIndex = 1;
+                
+                @foreach (var childRelation in Model.GroupChilds)
+                {
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h5 class="mb-0">
+                                    <a asp-action="Details" asp-route-id="@childRelation.RelatedGroup.ID" class="text-decoration-none">
+                                        (@childIndex) @childRelation.RelatedGroup.Name
+                                    </a>
+                                </h5>
+                                <!-- Relation Type Display -->
+                                <div class="mt-1">
+                                    @{
+                                        var relationText = childRelation.IsCompound == true ? "Compound" : 
+                                                         childRelation.IsCompound == false ? "Derived" : 
+                                                         "No specific relation";
+                                        var badgeClass = childRelation.IsCompound == true ? "bg-success" : 
+                                                       childRelation.IsCompound == false ? "bg-primary" : 
+                                                       "bg-secondary";
+                                    }
+                                    <span class="badge @badgeClass">
+                                        <i class="bi bi-link-45deg"></i> @relationText Relationship
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <a asp-action="CreateWordForGroup" asp-route-groupId="@childRelation.RelatedGroup.ID" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus"></i> Add Word to Group
+                                </a>
+                                <form asp-action="DeleteGroupRelation" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@childRelation.ID" />
+                                    <input type="hidden" name="wordId" value="@Model.ID" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this Group Relation?');">
+                                        <i class="bi bi-trash"></i> Remove Relation
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(childRelation.RelatedGroup.OriginLanguage) || !string.IsNullOrEmpty(childRelation.RelatedGroup.EtymologyWord))
+                        {
+                            <p class="text-muted mb-2">
+                                @if (!string.IsNullOrEmpty(childRelation.RelatedGroup.OriginLanguage))
+                                {
+                                    <span><strong>Origin:</strong> @childRelation.RelatedGroup.OriginLanguage</span>
+                                }
+                                @if (!string.IsNullOrEmpty(childRelation.RelatedGroup.EtymologyWord))
+                                {
+                                    <span class="ms-3"><strong>Etymology:</strong> @childRelation.RelatedGroup.EtymologyWord</span>
+                                }
+                            </p>
+                        }
+
+                        @if (childRelation.RelatedGroup.Words != null && childRelation.RelatedGroup.Words.Any())
+                        {
+                            <h6><i class="bi bi-list-ul"></i> Words in this Child Group (@childRelation.RelatedGroup.Words.Count)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th width="5%">#</th>
+                                            <th width="40%">Word</th>
+                                            <th width="25%">Language</th>
+                                            <th width="30%">Class</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int wordIndex = 1;
+                                        }
+                                        @foreach (var word in childRelation.RelatedGroup.Words.OrderBy(w => w.Language).ThenBy(w => w.Word_text))
+                                        {
+                                            <tr>
+                                                <td>@wordIndex</td>
+                                                <td>
+                                                    <a asp-controller="Words" asp-action="Details" asp-route-id="@word.WordId" class="text-decoration-none">
+                                                        @word.Word_text
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        string displayLanguage = string.IsNullOrEmpty(word.Language) ? "No Language" : word.Language;
+                                                        string languageBadgeClass = string.IsNullOrEmpty(word.Language) ? "bg-warning text-dark" : "bg-info";
+                                                    }
+                                                    <span class="badge @languageBadgeClass">@displayLanguage</span>
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        string displayClass = string.IsNullOrEmpty(word.Class) ? "No Class" : word.Class;
+                                                        string classBadgeClass = string.IsNullOrEmpty(word.Class) ? "bg-warning text-dark" : "bg-secondary";
+                                                    }
+                                                    <span class="badge @classBadgeClass">@displayClass</span>
+                                                </td>
+                                            </tr>
+                                            
+                                                wordIndex++;
+                                            
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle"></i> No words in this child group yet.
+                            </div>
+                        }
+                    </div>
+                    
+                        childIndex++;
+                    
+                }
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> No child groups assigned to this group.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Group Explanations Section -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Group Explanations</h4>
+            <a asp-action="CreateGroupExplanation" asp-route-groupId="@Model.ID" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Add Explanation
+            </a>
+        </div>
+        <div class="card-body">
+            @if (Model.GroupExplanations != null && Model.GroupExplanations.Any())
+            {
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Language</th>
+                            <th>Explanation</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var explanation in Model.GroupExplanations)
+                        {
+                            <tr>
+                                <td>@explanation.Language</td>
+                                <td>
+                                    <div class="bidi-text" dir="auto">@Html.Raw(explanation.Explanation)</div>
+                                </td>
+                                <td>
+                                    <div class="bidi-text" dir="auto">@Html.Raw(explanation.Notes)</div>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a asp-action="EditGroupExplanation" asp-route-id="@explanation.ID"
+                                           class="btn btn-outline-primary btn-sm" title="Edit">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <form asp-action="DeleteGroupExplanation" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@explanation.ID" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                    onclick="return confirm('Are you sure you want to delete this explanation?');"
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No explanations have been added to this group yet.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Group Statistics -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4>Group Statistics</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="text-primary">@(Model.Words?.Count ?? 0)</h3>
+                        <p class="text-muted">Total Words</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="text-success">@(Model.GroupExplanations?.Count ?? 0)</h3>
+                        <p class="text-muted">Explanations</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="text-info">@(Model.GroupParents?.Count ?? 0)</h3>
+                        <p class="text-muted">Parent Groups</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="text-warning">@(Model.GroupChilds?.Count ?? 0)</h3>
+                        <p class="text-muted">Child Groups</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="mt-4">
+    <div class="btn-group">
+        <a asp-action="Edit" asp-route-id="@Model?.ID" class="btn btn-primary">
+            <i class="bi bi-pencil-square"></i> Edit Group
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-list"></i> Back to List
+        </a>
+        <button type="button" class="btn btn-danger" onclick="deleteGroup(@Model.ID)">
+            <i class="bi bi-trash"></i> Delete Group
+        </button>
+    </div>
+</div>
+
+<!-- Add this style section at the bottom of the file if it doesn't exist, or add the content to the existing style section -->
+<style>
+    .bidi-text {
+        unicode-bidi: embed;
+        text-align: start;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    
+    /* Add additional formatting specific to your needs */
+    [dir="rtl"] .bidi-text {
+        font-family: "Arial", sans-serif;
+    }
+    
+    /* Ensure proper padding for both RTL and LTR content */
+    .table td .bidi-text {
+        padding: 0.5rem;
+        margin: -0.5rem;
+    }
+
+    /* Add visual distinction for unknown/null values */
+    .badge.bg-warning {
+        color: #000 !important;
+    }
+
+    .text-warning {
+        color: #e58e09 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    /* Style for unknown entries */
+    .unknown-entry {
+        font-style: italic;
+        opacity: 0.8;
+    }
+
+    /* Add hover effects */
+    .badge:hover {
+        opacity: 0.8;
+    }
+
+    /* Highlight missing information */
+    .text-dark {
+        color: #212529 !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        function deleteGroup(groupId) {
+            if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '@Url.Action("Delete", "GroupWords")';
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                idInput.value = groupId;
+                form.appendChild(idInput);
+
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '__RequestVerificationToken';
+                tokenInput.value = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+                form.appendChild(tokenInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+}

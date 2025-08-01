@@ -1,0 +1,1247 @@
+﻿@model IEnumerable<Bible>
+
+@{
+    ViewData["Title"] = "Bible Search";
+    var currentPage = ViewBag.CurrentPage ?? 1;
+    var totalPages = ViewBag.TotalPages ?? 0;
+    var totalCount = ViewBag.TotalCount ?? 0;
+    var pageSize = ViewBag.PageSize ?? 20;
+    var hasResults = Model.Any();
+    var hasSearch = !string.IsNullOrEmpty(ViewBag.SearchText);
+    var hasFilters = ViewBag.SelectedBook != null || ViewBag.SelectedChapter != null || 
+                    !string.IsNullOrEmpty(ViewBag.SelectedLanguage) || !string.IsNullOrEmpty(ViewBag.SelectedEdition);
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 fw-bold text-primary">
+                <i class="bi bi-book"></i> Bible Search
+            </h1>
+            <p class="text-muted">Search Bible verses by text content and apply filters</p>
+        </div>
+        <div>
+            <a asp-action="Create" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> Create New Bible Entry
+            </a>
+        </div>
+    </div>
+
+    <!-- Advanced Search Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-search"></i> Advanced Bible Search
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="searchForm">
+                <!-- Hidden field for page to reset to 1 on new search -->
+                <input type="hidden" name="page" value="1" />
+                
+                <!-- Text Search Row -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Search Text:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input name="search" value="@ViewBag.SearchText" 
+                            class="form-control" 
+                            placeholder="Search in Bible text..." />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="searchType" class="form-label">Search Type:</label>
+                        <select name="searchType" class="form-select">
+                            @if (ViewBag.SearchType == "exact")
+                            {
+                                <option value="exact" selected>Exact Match</option>
+                            }
+                            else
+                            {
+                                <option value="exact">Exact Match</option>
+                            }
+
+                            @if (ViewBag.SearchType == "contain")
+                            {
+                                <option value="contain" selected>Contains</option>
+                            }
+                            else
+                            {
+                                <option value="contain">Contains</option>
+                            }
+
+                            @if (ViewBag.SearchType == "start")
+                            {
+                                <option value="start" selected>Starts With</option>
+                            }
+                            else
+                            {
+                                <option value="start">Starts With</option>
+                            }
+
+                            @if (ViewBag.SearchType == "end")
+                            {
+                                <option value="end" selected>Ends With</option>
+                            }
+                            else
+                            {
+                                <option value="end">Ends With</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- Filters Row -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <label for="bookNumber" class="form-label">Bible Book:</label>
+                        <div class="position-relative">
+                            <input type="text" id="bookSearch" class="form-control mb-2" placeholder="Search for a Bible book..." />
+                            <select name="bookNumber" id="bookSelect" class="form-select">
+                                <option value="">-- All Books --</option>
+                                @foreach (var book in ViewBag.BibleBooks as SelectList)
+                                {
+                                    if (ViewBag.SelectedBook?.ToString() == book.Value)
+                                    {
+                                        <option value="@book.Value" data-search="@book.Text.ToLower()" selected>@book.Text</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@book.Value" data-search="@book.Text.ToLower()">@book.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <small class="form-text text-muted">Type to search or select from dropdown</small>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="language" class="form-label">Language:</label>
+                        <select name="language" id="languageSelect" class="form-select">
+                            <option value="">-- All Languages --</option>
+                            @foreach (var language in ViewBag.Languages as SelectList)
+                            {
+                                if (ViewBag.SelectedLanguage == language.Value)
+                                {
+                                    <option value="@language.Value" selected>@language.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@language.Value">@language.Text</option>
+                                }
+                            }
+                        </select>
+                        <div id="languageLoading" class="d-none">
+                            <small class="text-muted">
+                                <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                Loading languages...
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="edition" class="form-label">Edition:</label>
+                        <select name="edition" id="editionSelect" class="form-select">
+                            <option value="">-- All Editions --</option>
+                            @foreach (var edition in ViewBag.Editions as SelectList)
+                            {
+                                if (ViewBag.SelectedEdition == edition.Value)
+                                {
+                                    <option value="@edition.Value" selected>@edition.Value</option>
+                                }
+                                else
+                                {
+                                    <option value="@edition.Value">@edition.Value</option>
+                                }
+                            }
+                        </select>
+                        <div id="editionLoading" class="d-none">
+                            <small class="text-muted">
+                                <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                Loading editions...
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="chapter" class="form-label">Chapter:</label>
+                        <select name="chapter" id="chapterSelect" class="form-select">
+                            <option value="">-- All Chapters --</option>
+                            @foreach (var chapter in ViewBag.Chapters as SelectList)
+                            {
+                                if (ViewBag.SelectedChapter?.ToString() == chapter.Value)
+                                {
+                                    <option value="@chapter.Value" selected>Chapter @chapter.Value</option>
+                                }
+                                else
+                                {
+                                    <option value="@chapter.Value">Chapter @chapter.Value</option>
+                                }
+                            }
+                        </select>
+                        <div id="chapterLoading" class="d-none">
+                            <small class="text-muted">
+                                <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                Loading chapters...
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="verse" class="form-label">Verse:</label>
+                        <select name="verse" id="verseSelect" class="form-select">
+                            <option value="">-- All Verses --</option>
+                            @if (ViewBag.Verses is SelectList verses)
+                            {
+                                @foreach (var verse in verses)
+                                {
+                                    if (ViewBag.SelectedVerse?.ToString() == verse.Value)
+                                    {
+                                        <option value="@verse.Value" selected>Verse @verse.Value</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@verse.Value">Verse @verse.Value</option>
+                                    }
+                                }
+                            }
+                        </select>
+                        <div id="verseLoading" class="d-none">
+                            <small class="text-muted">
+                                <i class="spinner-border spinner-border-sm me-1" role="status"></i>
+                                Loading verses...
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page Size Selection -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="pageSize" class="form-label">Results per page:</label>
+                        <select name="pageSize" class="form-select">
+                            @if (pageSize == 10)
+                            {
+                                <option value="10" selected>10 per page</option>
+                            }
+                            else
+                            {
+                                <option value="10">10 per page</option>
+                            }
+
+                            @if (pageSize == 20)
+                            {
+                                <option value="20" selected>20 per page</option>
+                            }
+                            else
+                            {
+                                <option value="20">20 per page</option>
+                            }
+
+                            @if (pageSize == 50)
+                            {
+                                <option value="50" selected>50 per page</option>
+                            }
+                            else
+                            {
+                                <option value="50">50 per page</option>
+                            }
+
+                            @if (pageSize == 100)
+                            {
+                                <option value="100" selected>100 per page</option>
+                            }
+                            else
+                            {
+                                <option value="100">100 per page</option>
+                            }
+                        </select>
+
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-funnel"></i> Apply Filters
+                            </button>
+                            <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear All
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Summary with Pagination Info -->
+    @if (hasSearch || hasFilters)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Search Results:</strong>
+            @if (hasSearch)
+            {
+                <span>Text search for "<strong>@ViewBag.SearchText</strong>" using <strong>@ViewBag.SearchType</strong> match</span>
+            }
+            @if (hasFilters)
+            {
+                <br />
+                <small>
+                    Filters applied:
+                    @if (ViewBag.SelectedBook != null)
+                    {
+
+                        var bookNames = ViewBag.BookNames as Dictionary<int, string>;
+                        var selectedBookName = bookNames?.ContainsKey((int)ViewBag.SelectedBook) == true 
+                            ? bookNames[(int)ViewBag.SelectedBook] 
+                            : $"كتاب {ViewBag.SelectedBook}";
+
+                        <span class="badge bg-secondary me-1">Book: @selectedBookName</span>
+                    }
+                    @if (ViewBag.SelectedChapter != null)
+                    {
+                        <span class="badge bg-secondary me-1">Chapter: @ViewBag.SelectedChapter</span>
+                    }
+                    @if (!string.IsNullOrEmpty(ViewBag.SelectedLanguage))
+                    {
+                        <span class="badge bg-secondary me-1">Language: @ViewBag.SelectedLanguage</span>
+                    }
+                    @if (!string.IsNullOrEmpty(ViewBag.SelectedEdition))
+                    {
+                        <span class="badge bg-secondary me-1">Edition: @ViewBag.SelectedEdition</span>
+                    }
+                </small>
+            }
+            <br />
+            <small>
+                Found <strong>@totalCount</strong> verse(s) total
+                @if (totalPages > 1)
+                {
+                    <span> - Showing page <strong>@currentPage</strong> of <strong>@totalPages</strong> 
+                          (verses @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalCount)))</span>
+                }
+            </small>
+        </div>
+    }
+
+    <!-- Results Display -->
+    @if (hasResults)
+    {
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="fw-bold">@totalCount</h4>
+                                <p class="mb-0">Total Verses</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-book fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="fw-bold">@Model.Select(b => b.Book).Distinct().Count()</h4>
+                                <p class="mb-0">Books (this page)</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-collection fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="fw-bold">@Model.Select(b => b.Language).Distinct().Count()</h4>
+                                <p class="mb-0">Languages (this page)</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-translate fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="fw-bold">@totalPages</h4>
+                                <p class="mb-0">Total Pages</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-journals fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-table"></i> Bible Verses (@Model.Count() of @totalCount results)
+                </h5>
+                @if (totalPages > 1)
+                {
+                    <small class="text-white-50">
+                        Page @currentPage of @totalPages
+                    </small>
+                }
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 modern-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col"><i class="bi bi-book-half"></i> Reference</th>
+                                <th scope="col"><i class="bi bi-translate"></i> Language</th>
+                                <th scope="col"><i class="bi bi-journal"></i> Edition</th>
+                                <th scope="col"><i class="bi bi-file-text"></i> Text</th>
+                                <th scope="col"><i class="bi bi-volume-up"></i> Pronunciation</th>
+                                <th scope="col"><i class="bi bi-sticky"></i> Notes</th>
+                                <th scope="col" class="text-center"><i class="bi bi-gear"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr class="table-row">
+                                    <td>
+                                        <div class="fw-bold text-primary">
+                                            @{
+                                                var bookNames = ViewBag.BookNames as Dictionary<int, string>;
+                                                var bookName = bookNames?.ContainsKey(item.Book) == true 
+                                                    ? bookNames[item.Book] 
+                                                    : $"كتاب {item.Book}";
+                                            }
+                                            @bookName : @item.Chapter : @item.Verse
+                                        </div>
+                                        <small class="text-muted">ID: @item.BibleID</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@item.Language</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.Edition</span>
+                                    </td>
+                                    <td>
+                                        <div class="text-wrap" style="max-width: 300px;">
+                                            @if (!string.IsNullOrEmpty(item.Text))
+                                            {
+                                                @if (item.Text.Length > 100)
+                                                {
+                                                    <span title="@item.Text">@item.Text.Substring(0, 100)...</span>
+                                                }
+                                                else
+                                                {
+                                                    @item.Text
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Pronunciation))
+                                        {
+                                            <span class="text-muted">@item.Pronunciation</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Notes))
+                                        {
+                                            <span class="text-muted" title="@item.Notes">
+                                                @(item.Notes.Length > 50 ? item.Notes.Substring(0, 50) + "..." : item.Notes)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Details" asp-route-id="@item.BibleID" 
+                                               class="btn btn-sm btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@item.BibleID" 
+                                               class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (totalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div>
+                    <p class="text-muted mb-0">
+                        Showing @((currentPage - 1) * pageSize + 1) to @(Math.Min(currentPage * pageSize, totalCount)) of @totalCount results
+                    </p>
+                </div>
+                <div>
+                    <nav aria-label="Bible search pagination">
+                        <ul class="pagination pagination-lg mb-0">
+                            <!-- First Page -->
+                            @if (currentPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Index", new { 
+                                        search = ViewBag.SearchText, 
+                                        searchType = ViewBag.SearchType, 
+                                        bookNumber = ViewBag.SelectedBook, 
+                                        chapter = ViewBag.SelectedChapter, 
+                                        language = ViewBag.SelectedLanguage, 
+                                        edition = ViewBag.SelectedEdition,
+                                        verse = ViewBag.SelectedVerse,
+                                        page = 1,
+                                        pageSize = pageSize 
+                                    })" aria-label="First page">
+                                        <i class="bi bi-chevron-double-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Previous Page -->
+                            @if (ViewBag.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Index", new { 
+                                        search = ViewBag.SearchText, 
+                                        searchType = ViewBag.SearchType, 
+                                        bookNumber = ViewBag.SelectedBook, 
+                                        chapter = ViewBag.SelectedChapter, 
+                                        language = ViewBag.SelectedLanguage, 
+                                        edition = ViewBag.SelectedEdition,
+                                        verse = ViewBag.SelectedVerse,
+                                        page = currentPage - 1,
+                                        pageSize = pageSize 
+                                    })" aria-label="Previous page">
+                                        <i class="bi bi-chevron-left"></i> Previous
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Page Numbers -->
+                            @{
+                                var startPage = Math.Max(1, currentPage - 2);
+                                var endPage = Math.Min(totalPages, currentPage + 2);
+                                
+                                if (endPage - startPage < 4 && totalPages >= 5)
+                                {
+                                    if (startPage == 1)
+                                    {
+                                        endPage = Math.Min(totalPages, startPage + 4);
+                                    }
+                                    else if (endPage == totalPages)
+                                    {
+                                        startPage = Math.Max(1, endPage - 4);
+                                    }
+                                }
+                            }
+
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    @if (i == currentPage)
+                                    {
+                                        <span class="page-link">@i</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                            search = ViewBag.SearchText, 
+                                            searchType = ViewBag.SearchType, 
+                                            bookNumber = ViewBag.SelectedBook, 
+                                            chapter = ViewBag.SelectedChapter, 
+                                            language = ViewBag.SelectedLanguage, 
+                                            edition = ViewBag.SelectedEdition,
+                                            verse = ViewBag.SelectedVerse,
+                                            page = i,
+                                            pageSize = pageSize 
+                                        })">@i</a>
+                                    }
+                                </li>
+                            }
+
+                            @if (endPage < totalPages)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            @if (ViewBag.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Index", new { 
+                                        search = ViewBag.SearchText, 
+                                        searchType = ViewBag.SearchType, 
+                                        bookNumber = ViewBag.SelectedBook, 
+                                        chapter = ViewBag.SelectedChapter, 
+                                        language = ViewBag.SelectedLanguage, 
+                                        edition = ViewBag.SelectedEdition,
+                                        verse = ViewBag.SelectedVerse,
+                                        page = currentPage + 1,
+                                        pageSize = pageSize 
+                                    })" aria-label="Next page">
+                                        Next <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Last Page -->
+                            @if (currentPage < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Index", new { 
+                                        search = ViewBag.SearchText, 
+                                        searchType = ViewBag.SearchType, 
+                                        bookNumber = ViewBag.SelectedBook, 
+                                        chapter = ViewBag.SelectedChapter, 
+                                        language = ViewBag.SelectedLanguage, 
+                                        edition = ViewBag.SelectedEdition,
+                                        verse = ViewBag.SelectedVerse,
+                                        page = totalPages,
+                                        pageSize = pageSize 
+                                    })" aria-label="Last page">
+                                        <i class="bi bi-chevron-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        }
+    }
+    else if (hasSearch || hasFilters)
+    {
+        <!-- No Results Found -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-search display-1 text-muted"></i>
+            </div>
+            <h3 class="text-muted">No Bible Verses Found</h3>
+            <p class="text-muted">No verses match your search criteria. Try adjusting your search terms or filters.</p>
+            <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Clear Search
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Initial State -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-search display-1 text-primary"></i>
+            </div>
+            <h3 class="text-primary">Search Bible Verses</h3>
+            <p class="text-muted">Enter search terms or apply filters above to find Bible verses.</p>
+            <div class="mt-4">
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-lightbulb"></i> Search Features
+                                </h5>
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="bi bi-check-circle text-success"></i> Search by text content in Bible verses</li>
+                                    <li><i class="bi bi-check-circle text-success"></i> Filter by specific Bible books</li>
+                                    <li><i class="bi bi-check-circle text-success"></i> Filter by chapter within selected books</li>
+                                    <li><i class="bi bi-check-circle text-success"></i> Filter by language and edition</li>
+                                    <li><i class="bi bi-check-circle text-success"></i> Combine text search with filters for precise results</li>
+                                    <li><i class="bi bi-check-circle text-success"></i> Paginated results for better performance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Custom Styles -->
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    .stats-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: none;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .modern-table {
+        font-size: 0.9rem;
+    }
+    
+    .modern-table thead th {
+        border: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .table-row:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+        transform: scale(1.01);
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .badge {
+        font-size: 0.75em;
+        padding: 0.35em 0.65em;
+    }
+    
+    .btn-group .btn {
+        margin: 0 1px;
+        border-radius: 0.375rem;
+    }
+    
+    .display-6 {
+        font-size: 2.5rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .table-responsive {
+        border-radius: 0 0 0.375rem 0.375rem;
+    }
+    
+    /* Pagination styling */
+    .pagination-lg .page-link {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .pagination .page-link {
+        color: #007bff;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+        transform: translateY(-1px);
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
+</style>
+
+<!-- JavaScript for Dynamic Filtering (same as before but with pagination reset) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const bookSearch = document.getElementById('bookSearch');
+    const bookSelect = document.getElementById('bookSelect');
+    const languageSelect = document.getElementById('languageSelect');
+    const editionSelect = document.getElementById('editionSelect');
+    const chapterSelect = document.getElementById('chapterSelect');
+    const verseSelect = document.getElementById('verseSelect');
+    
+    const languageLoading = document.getElementById('languageLoading');
+    const editionLoading = document.getElementById('editionLoading');
+    const chapterLoading = document.getElementById('chapterLoading');
+    const verseLoading = document.getElementById('verseLoading');
+    
+    // Store original options for all dropdowns
+    const bookOptions = Array.from(bookSelect.options);
+    const languageOptions = Array.from(languageSelect.options);
+    const editionOptions = Array.from(editionSelect.options);
+    
+    // Remember current selections
+    let currentBookValue = bookSelect.value;
+    let currentLanguageValue = languageSelect.value;
+    let currentEditionValue = editionSelect.value;
+    let currentChapterValue = chapterSelect.value;
+    let currentVerseValue = verseSelect ? verseSelect.value : '';
+
+    // Book search functionality
+    bookSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        // Save current selection
+        const currentValue = bookSelect.value;
+        
+        // Clear current options (except first)
+        bookSelect.innerHTML = '<option value="">-- All Books --</option>';
+        
+        // Filter and add matching options
+        const filteredOptions = bookOptions.slice(1).filter(option => 
+            option.dataset.search && option.dataset.search.includes(searchTerm)
+        );
+        
+        filteredOptions.forEach(option => {
+            bookSelect.appendChild(option.cloneNode(true));
+        });
+        
+        // Restore selection if it still exists
+        if (currentValue && bookSelect.querySelector(`option[value="${currentValue}"]`)) {
+            bookSelect.value = currentValue;
+        }
+        
+        // Auto-select if only one match and search term is not empty
+        if (searchTerm && filteredOptions.length === 1) {
+            bookSelect.value = filteredOptions[0].value;
+            bookSelect.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Load available languages based on selected book
+    function loadLanguages() {
+        const bookNumber = bookSelect.value;
+        
+        // Remember current selection before updating
+        currentBookValue = bookNumber;
+        
+        // If no book is selected, show all languages and reset dependent fields
+        if (!bookNumber) {
+            // Restore all original language options
+            languageSelect.innerHTML = '';
+            languageOptions.forEach(option => {
+                languageSelect.appendChild(option.cloneNode(true));
+            });
+            
+            // Reset dependent fields
+            resetEditions();
+            resetChapters();
+            resetVerses();
+            return;
+        }
+        
+        // Show loading
+        languageLoading?.classList.remove('d-none');
+        languageSelect.disabled = true;
+        
+        // Get available languages for the selected book
+        const url = `/Bibles/GetAvailableLanguages?bookNumber=${encodeURIComponent(bookNumber)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                languageLoading?.classList.add('d-none');
+                languageSelect.disabled = false;
+                
+                if (data.success && data.languages && data.languages.length > 0) {
+                    // Update languages dropdown
+                    languageSelect.innerHTML = '<option value="">-- All Languages --</option>';
+                    
+                    data.languages.forEach(lang => {
+                        const option = document.createElement('option');
+                        option.value = lang.value;
+                        option.textContent = lang.text;
+                        
+                        // Restore selection if it exists in new options
+                        if (lang.value === currentLanguageValue) {
+                            option.selected = true;
+                        }
+                        
+                        languageSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select if only one option and none selected
+                    if (data.languages.length === 1 && !currentLanguageValue) {
+                        languageSelect.value = data.languages[0].value;
+                        languageSelect.dispatchEvent(new Event('change'));
+                    } else if (currentLanguageValue && languageSelect.value !== currentLanguageValue) {
+                        // If previous selection is no longer valid, reset dependent dropdowns
+                        resetEditions();
+                        resetChapters();
+                        resetVerses();
+                    } else if (languageSelect.value) {
+                        // If we have a valid language selection, load editions
+                        loadEditions();
+                    }
+                } else {
+                    languageSelect.innerHTML = '<option value="">-- No Languages Available --</option>';
+                    resetEditions();
+                    resetChapters();
+                    resetVerses();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading languages:', error);
+                languageLoading?.classList.add('d-none');
+                languageSelect.disabled = false;
+                languageSelect.innerHTML = '<option value="">-- Error Loading Languages --</option>';
+                resetEditions();
+                resetChapters();
+                resetVerses();
+            });
+    }
+
+    // Load editions when book and language are selected
+    function loadEditions() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        
+        // Remember current selection
+        currentLanguageValue = language;
+        
+        if (!bookNumber || !language) {
+            resetEditions();
+            resetChapters();
+            resetVerses();
+            return;
+        }
+        
+        // Show loading
+        editionLoading.classList.remove('d-none');
+        editionSelect.disabled = true;
+        editionSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Bibles/GetAvailableEditions?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                editionLoading.classList.add('d-none');
+                editionSelect.disabled = false;
+                
+                if (data.success && data.editions && data.editions.length > 0) {
+                    editionSelect.innerHTML = '<option value="">-- All Editions --</option>';
+                    
+                    data.editions.forEach(edition => {
+                        const option = document.createElement('option');
+                        option.value = edition;
+                        option.textContent = edition;
+                        
+                        // Restore previously selected edition if available
+                        if (edition === currentEditionValue) {
+                            option.selected = true;
+                        }
+                        
+                        editionSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select if only one edition available
+                    if (data.editions.length === 1 && !currentEditionValue) {
+                        editionSelect.value = data.editions[0];
+                        editionSelect.dispatchEvent(new Event('change'));
+                    } else if (currentEditionValue && editionSelect.value !== currentEditionValue) {
+                        // If previous selection is no longer valid
+                        resetChapters();
+                        resetVerses();
+                    } else if (editionSelect.value) {
+                        // If we have a valid edition selection, load chapters
+                        loadChapters();
+                    }
+                } else {
+                    editionSelect.innerHTML = '<option value="">-- No Editions Available --</option>';
+                    resetChapters();
+                    resetVerses();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading editions:', error);
+                editionLoading.classList.add('d-none');
+                editionSelect.disabled = false;
+                editionSelect.innerHTML = '<option value="">-- Error Loading Editions --</option>';
+                resetChapters();
+                resetVerses();
+            });
+    }
+
+    // Load chapters when book, language, and edition are selected
+    function loadChapters() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        const edition = editionSelect.value;
+        
+        // Remember current selection
+        currentEditionValue = edition;
+        
+        if (!bookNumber || !language || !edition) {
+            resetChapters();
+            resetVerses();
+            return;
+        }
+        
+        // Show loading
+        chapterLoading.classList.remove('d-none');
+        chapterSelect.disabled = true;
+        chapterSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Bibles/GetAvailableChapters?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}&edition=${encodeURIComponent(edition)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                chapterLoading.classList.add('d-none');
+                chapterSelect.disabled = false;
+                
+                if (data.success && data.chapters && data.chapters.length > 0) {
+                    chapterSelect.innerHTML = '<option value="">-- All Chapters --</option>';
+                    
+                    data.chapters.forEach(chapter => {
+                        const option = document.createElement('option');
+                        option.value = chapter;
+                        option.textContent = `Chapter ${chapter}`;
+                        
+                        // Restore previously selected chapter if available
+                        if (chapter.toString() === currentChapterValue) {
+                            option.selected = true;
+                        }
+                        
+                        chapterSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select if only one chapter available
+                    if (data.chapters.length === 1 && !currentChapterValue) {
+                        chapterSelect.value = data.chapters[0].toString();
+                        chapterSelect.dispatchEvent(new Event('change'));
+                    } else if (currentChapterValue && chapterSelect.value !== currentChapterValue) {
+                        // If previous selection is no longer valid
+                        resetVerses();
+                    } else if (chapterSelect.value) {
+                        // If we have a valid chapter selection, load verses
+                        loadVerses();
+                    }
+                } else {
+                    chapterSelect.innerHTML = '<option value="">-- No Chapters Available --</option>';
+                    resetVerses();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading chapters:', error);
+                chapterLoading.classList.add('d-none');
+                chapterSelect.disabled = false;
+                chapterSelect.innerHTML = '<option value="">-- Error Loading Chapters --</option>';
+                resetVerses();
+            });
+    }
+
+    // Load verses when book, language, edition, and chapter are selected
+    function loadVerses() {
+        const bookNumber = bookSelect.value;
+        const language = languageSelect.value;
+        const edition = editionSelect.value;
+        const chapter = chapterSelect.value;
+        
+        // Remember current selection
+        currentChapterValue = chapter;
+        
+        if (!bookNumber || !language || !edition || !chapter || !verseSelect) {
+            resetVerses();
+            return;
+        }
+        
+        // Show loading
+        verseLoading.classList.remove('d-none');
+        verseSelect.disabled = true;
+        verseSelect.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        const url = `/Bibles/GetAvailableVerses?bookNumber=${encodeURIComponent(bookNumber)}&language=${encodeURIComponent(language)}&edition=${encodeURIComponent(edition)}&chapter=${encodeURIComponent(chapter)}`;
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                verseLoading.classList.add('d-none');
+                verseSelect.disabled = false;
+                
+                if (data.success && data.verses && data.verses.length > 0) {
+                    verseSelect.innerHTML = '<option value="">-- All Verses --</option>';
+                    
+                    data.verses.forEach(verse => {
+                        const option = document.createElement('option');
+                        option.value = verse;
+                        option.textContent = `Verse ${verse}`;
+                        
+                        // Restore previously selected verse if available
+                        if (verse.toString() === currentVerseValue) {
+                            option.selected = true;
+                        }
+                        
+                        verseSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select if only one verse available
+                    if (data.verses.length === 1 && !currentVerseValue) {
+                        verseSelect.value = data.verses[0].toString();
+                    }
+                } else {
+                    verseSelect.innerHTML = '<option value="">-- No Verses Available --</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading verses:', error);
+                verseLoading.classList.add('d-none');
+                verseSelect.disabled = false;
+                verseSelect.innerHTML = '<option value="">-- Error Loading Verses --</option>';
+            });
+    }
+
+    // Reset functions
+    function resetEditions() {
+        editionSelect.innerHTML = '<option value="">-- All Editions --</option>';
+        editionSelect.disabled = !bookSelect.value || !languageSelect.value;
+        editionLoading.classList.add('d-none');
+        currentEditionValue = '';
+    }
+
+    function resetChapters() {
+        chapterSelect.innerHTML = '<option value="">-- All Chapters --</option>';
+        chapterSelect.disabled = !bookSelect.value || !languageSelect.value || !editionSelect.value;
+        chapterLoading.classList.add('d-none');
+        currentChapterValue = '';
+    }
+
+    function resetVerses() {
+        if (verseSelect) {
+            verseSelect.innerHTML = '<option value="">-- All Verses --</option>';
+            verseSelect.disabled = !bookSelect.value || !languageSelect.value || !editionSelect.value || !chapterSelect.value;
+            if (verseLoading) verseLoading.classList.add('d-none');
+            currentVerseValue = '';
+        }
+    }
+
+    // Event listeners for the proper cascade order
+    bookSelect.addEventListener('change', function() {
+        // Book selection affects all other dropdowns
+        loadLanguages();
+    });
+
+    languageSelect.addEventListener('change', function() {
+        // Language selection affects editions, chapters, and verses
+        loadEditions();
+    });
+
+    editionSelect.addEventListener('change', function() {
+        // Edition selection affects chapters and verses
+        loadChapters();
+    });
+
+    chapterSelect.addEventListener('change', function() {
+        // Chapter selection affects verses
+        loadVerses();
+    });
+
+    // Initialize on page load based on any pre-selected values
+    // Start cascade from the highest level that's selected
+    if (bookSelect.value) {
+        loadLanguages();
+    }
+
+    // Initialize tooltips for truncated text
+    const truncatedElements = document.querySelectorAll('[title]');
+    truncatedElements.forEach(element => {
+        if (element.textContent.includes('...')) {
+            element.style.cursor = 'help';
+        }
+    });
+
+    // Form submission handler to maintain selected values
+    document.querySelector('form').addEventListener('submit', function(e) {
+        // Nothing needed here as the form will naturally submit all selected values
+        // Values are maintained by the controller and returned in ViewBag
+    });
+    
+    // Add event listener to form submission to reset page to 1
+    document.querySelector('#searchForm').addEventListener('submit', function(e) {
+        // Reset page to 1 when submitting a new search
+        const pageInput = this.querySelector('input[name="page"]');
+        if (pageInput) {
+            pageInput.value = '1';
+        }
+    });
+    
+    // Add event listener to page size change to reset page to 1
+    document.querySelector('select[name="pageSize"]').addEventListener('change', function() {
+        this.form.submit();
+    });
+});
+</script>

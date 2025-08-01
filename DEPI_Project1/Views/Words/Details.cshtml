@@ -1,0 +1,1766 @@
+﻿@using Humanizer
+@using System.Globalization
+@model Word
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Word Details</h4>
+
+    <hr />
+
+    <!-- Hidden field for word ID -->
+    <input type="hidden" id="word-id" value="@Model.WordId" />
+
+    <!-- Add anti-forgery token -->
+    @Html.AntiForgeryToken()
+
+    <dl class="row">
+        <dt class="col-sm-3">
+            <i class="bi bi-type text-primary"></i>
+            @Html.DisplayNameFor(model => model.WordId)
+        </dt>
+        <dd class="col-sm-9">
+            <div class="fw-bold fs-5 text-primary">ND-@Html.DisplayFor(model => model.WordId)</div>
+    </dd>
+    <!-- Word Text -->
+   <style>
+    @@font-face {
+                font-family: 'CSAvaVeni-Regular';
+                src: url('/font/CSAvaVeni-Regular.ttf') format('truetype');
+    }
+</style>
+
+<dt class="col-sm-3">
+    <i class="bi bi-type text-primary"></i>
+    @Html.DisplayNameFor(model => model.Word_text)
+</dt>
+<dd class="col-sm-9">
+            <div class="fw-bold fs-5 text-primary" style="font-family: 'CSAvaVeni-Regular', 'Times New Roman', serif;">@Html.DisplayFor(model => model.Word_text)</div>
+</dd>
+
+   
+
+    <!-- Language -->
+    <dt class="col-sm-3">
+        <i class="bi bi-globe text-info"></i>
+        @Html.DisplayNameFor(model => model.Language)
+    </dt>
+    <dd class="col-sm-9">
+        <span class="badge bg-info text-white">@Html.DisplayFor(model => model.Language)</span>
+    </dd>
+
+    <!-- Part of Speech (Class) -->
+    <dt class="col-sm-3">
+        <i class="bi bi-tags text-success"></i>
+        Part of Speech
+    </dt>
+    <dd class="col-sm-9">
+        @if (!string.IsNullOrEmpty(Model.Class))
+        {
+            <span class="badge bg-success">@Html.DisplayFor(model => model.Class)</span>
+        }
+        else
+        {
+            <span class="text-muted">Not specified</span>
+        }
+    </dd>
+
+    <!-- Root Word -->
+    <dt class="col-sm-3">
+        <i class="bi bi-diagram-3 text-warning"></i>
+        Root Word
+    </dt>
+    <dd class="col-sm-9">
+        @if (Model.RootID != null && Model.Root != null)
+        {
+            <a asp-controller="Words" asp-action="Details" asp-route-id="@Model.RootID" 
+               class="text-decoration-none fw-bold">
+                @Html.DisplayFor(model => model.Root.Word_text)
+            </a>
+            @if (!string.IsNullOrEmpty(Model.Root.Class))
+            {
+                <span class="text-muted ms-2">(@Model.Root.Class)</span>
+            }
+        }
+        else
+        {
+            <span class="text-muted">No root word specified</span>
+        }
+    </dd>
+
+    <!-- IPA -->
+    <dt class="col-sm-3">
+        <i class="bi bi-soundwave text-secondary"></i>
+        IPA Transcription
+    </dt>
+    <dd class="col-sm-9">
+        @if (!string.IsNullOrEmpty(Model.IPA))
+        {
+            <code class="bg-light p-2 rounded">@Html.DisplayFor(model => model.IPA)</code>
+        }
+        else
+        {
+            <span class="text-muted">Not provided</span>
+        }
+    </dd>
+
+    <!-- Notes -->
+    <dt class="col-sm-3">
+        <i class="bi bi-sticky text-warning"></i>
+        Notes
+    </dt>
+    <dd class="col-sm-9">
+        @if (!string.IsNullOrEmpty(Model.notes))
+        {
+            <div class="bidi-text border-start border-warning border-3 ps-3">
+                @Html.Raw(Model.notes)
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">No notes available</span>
+        }
+    </dd>
+
+    <!-- Completion Status -->
+    <!-- Completion Status -->
+<dt class="col-sm-3">
+    <i class="bi bi-check-circle text-success"></i>
+    Completion Status
+</dt>
+<dd class="col-sm-9">
+    <div class="d-flex gap-3 flex-wrap">
+        <div class="completion-status-item">
+            <span class="fw-bold">Completed:</span>
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.ISCompleted == true)
+                {
+                    <span class="badge bg-success"><i class="bi bi-check-lg"></i> Yes</span>
+                }
+                else if (Model.ISCompleted == false)
+                {
+                    <span class="badge bg-danger"><i class="bi bi-x-lg"></i> No</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary"><i class="bi bi-question-lg"></i> Unknown</span>
+                }
+                
+                @* Only Instructors and Admins can change completion status *@
+                @if (User.IsInRole("Instructor") || User.IsInRole("Admin"))
+                {
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'ISCompleted', true)">
+                                <i class="bi bi-check-circle text-success"></i> Mark as Complete
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'ISCompleted', false)">
+                                <i class="bi bi-x-circle text-danger"></i> Mark as Incomplete
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'ISCompleted', null)">
+                                <i class="bi bi-question-circle text-secondary"></i> Mark as Unknown
+                            </a></li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="completion-status-item">
+            <span class="fw-bold">Review 1:</span>
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.Review1 == true)
+                {
+                    <span class="badge bg-success"><i class="bi bi-check-lg"></i> Passed</span>
+                }
+                else if (Model.Review1 == false)
+                {
+                    <span class="badge bg-danger"><i class="bi bi-x-lg"></i> Failed</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary"><i class="bi bi-question-lg"></i> Pending</span>
+                }
+                
+                @* Only Admins can change review statuses *@
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review1', true)">
+                                <i class="bi bi-check-circle text-success"></i> Mark as Passed
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review1', false)">
+                                <i class="bi bi-x-circle text-danger"></i> Mark as Failed
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review1', null)">
+                                <i class="bi bi-question-circle text-secondary"></i> Mark as Pending
+                            </a></li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="completion-status-item">
+            <span class="fw-bold">Review 2:</span>
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.Review2 == true)
+                {
+                    <span class="badge bg-success"><i class="bi bi-check-lg"></i> Passed</span>
+                }
+                else if (Model.Review2 == false)
+                {
+                    <span class="badge bg-danger"><i class="bi bi-x-lg"></i> Failed</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary"><i class="bi bi-question-lg"></i> Pending</span>
+                }
+                
+                @* Only Admins can change review statuses *@
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review2', true)">
+                                <i class="bi bi-check-circle text-success"></i> Mark as Passed
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review2', false)">
+                                <i class="bi bi-x-circle text-danger"></i> Mark as Failed
+                            </a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="updateCompletionStatus(@Model.WordId, 'Review2', null)">
+                                <i class="bi bi-question-circle text-secondary"></i> Mark as Pending
+                            </a></li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</dd>
+
+ <!-- Audit Information Section -->
+<dt class="col-sm-12">
+    <hr class="my-3">
+    <h5 class="text-primary">
+        <i class="bi bi-clock-history"></i> Audit Information
+    </h5>
+</dt>
+
+<!-- Created Information -->
+<dt class="col-sm-3">
+    <i class="bi bi-person-plus text-success"></i>
+    Created By
+</dt>
+<dd class="col-sm-9">
+    @if (Model.CreatedByUser != null)
+    {
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="bi bi-person-circle fs-4 text-success"></i>
+            </div>
+            <div>
+                <div class="fw-bold">@Model.CreatedByUser.Email</div>
+                <small class="text-muted">
+                    @if (!string.IsNullOrEmpty(Model.CreatedByUser.UserName) && Model.CreatedByUser.UserName != Model.CreatedByUser.Email)
+                    {
+                        @($"Username: {Model.CreatedByUser.UserName}")
+                    }
+                </small>
+            </div>
+        </div>
+    }
+    else
+    {
+        <span class="text-muted">Unknown user</span>
+    }
+</dd>
+
+<!-- Created Date -->
+<dt class="col-sm-3">
+    <i class="bi bi-calendar-plus text-success"></i>
+    Created Date
+</dt>
+<dd class="col-sm-9">
+    <div class="d-flex flex-column">
+        @{
+            // Convert UTC to Egypt time (UTC+3)
+            var egyptCreatedTime = Model.CreatedAt.Value.AddHours(3);
+        }
+        <span class="fw-bold">@egyptCreatedTime.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture)</span>
+        <small class="text-muted">@egyptCreatedTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)</small>
+        <small class="text-success">@Model.CreatedAt.Humanize()</small>
+    </div>
+</dd>
+
+<!-- Modified Information (only show if modified) -->
+@if (Model.ModifiedByUser != null && Model.ModifiedAt.HasValue)
+{
+    <dt class="col-sm-3">
+        <i class="bi bi-person-gear text-warning"></i>
+        Last Modified By
+    </dt>
+    <dd class="col-sm-9">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="bi bi-person-circle fs-4 text-warning"></i>
+            </div>
+            <div>
+                <div class="fw-bold">@Model.ModifiedByUser.Email</div>
+                <small class="text-muted">
+                    @if (!string.IsNullOrEmpty(Model.ModifiedByUser.UserName) && Model.ModifiedByUser.UserName != Model.ModifiedByUser.Email)
+                    {
+                        @($"Username: {Model.ModifiedByUser.UserName}")
+                    }
+                </small>
+            </div>
+        </div>
+    </dd>
+
+    <dt class="col-sm-3">
+        <i class="bi bi-calendar-event text-warning"></i>
+        Last Modified Date
+    </dt>
+    <dd class="col-sm-9">
+        <div class="d-flex flex-column">
+            @{
+                // Convert UTC to Egypt time (UTC+3)
+                var egyptModifiedTime = Model.ModifiedAt.Value.AddHours(3);
+            }
+            <span class="fw-bold">@egyptModifiedTime.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture)</span>
+            <small class="text-muted">@egyptModifiedTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)</small>
+            <small class="text-warning">@Model.ModifiedAt.Value.Humanize()</small>
+        </div>
+    </dd>
+}
+else
+{
+    <dt class="col-sm-3">
+        <i class="bi bi-info-circle text-muted"></i>
+        Modification Status
+    </dt>
+    <dd class="col-sm-9">
+        <span class="badge bg-light text-dark">Never modified</span>
+    </dd>
+}
+</dl>
+
+<!-- Word Statistics Card -->
+<div class="card mt-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">
+            <i class="bi bi-bar-chart"></i> Word Statistics
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="border-end">
+                    <h4 class="text-primary">@(Model.WordMeanings?.Count ?? 0)</h4>
+                    <small class="text-muted">Definitions</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border-end">
+                    <h4 class="text-success">@(Model.WordExplanations?.Count ?? 0)</h4>
+                    <small class="text-muted">Explanations</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border-end">
+                    <h4 class="text-info">@(Model.DictionaryReferenceWords?.Count ?? 0)</h4>
+                    <small class="text-muted">Dictionary References</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-warning">
+                    @(Model.WordMeanings?.SelectMany(wm => wm.Examples ?? new List<Example>()).Count() ?? 0)
+                </h4>
+                <small class="text-muted">Examples</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ... rest of your existing code ... -->
+
+        <!-- GroupWord Section -->
+        @if (Model.GroupWord != null)
+        {
+            <div class="card mt-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-collection"></i> Word Group Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="text-info mb-2">Group Name</h6>
+                            <div class="mb-3">
+                                <a asp-controller="GroupWords" 
+                                   asp-action="Details" 
+                                   asp-route-id="@Model.GroupID" 
+                                   class="fw-bold fs-5 text-decoration-none">
+                                    <i class="bi bi-folder-open text-info me-2"></i>
+                                    @Model.GroupWord.Name
+                                </a>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(Model.GroupWord.Etymology))
+                            {
+                                <h6 class="text-info mb-2">Etymology</h6>
+                                <div class="bg-light p-3 rounded border-start border-info border-3">
+                                    <div class="bidi-text">
+                                        <i class="bi bi-tree text-success me-2"></i>
+                                        @Model.GroupWord.Etymology
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="d-flex flex-column gap-2">
+                                <a asp-controller="GroupWords" 
+                                   asp-action="Details" 
+                                   asp-route-id="@Model.GroupID" 
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-eye"></i> View Group Details
+                                </a>
+                                
+                                <a asp-action="AddMeaningToGroup"
+                                   asp-controller="Words"
+                                   asp-route-groupId="@Model.GroupID"
+                                   asp-route-wordId="@Model.WordId"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-circle"></i> Add Definition to Group
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+               
+
+                <h4>Words in this Group</h4>
+                @if (ViewBag.GroupedWords != null && ViewBag.UniqueClasses != null)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Language</th>
+                                    @foreach (var wordClass in ViewBag.UniqueClasses)
+                                    {
+                                        <th>@wordClass</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var languageGroup in ViewBag.GroupedWords)
+                                {
+                                    <tr>
+                                        <td><strong>@languageGroup.Key</strong></td>
+                                        @foreach (var wordClass in ViewBag.UniqueClasses)
+                                        {
+                                            <td>
+                                                @{
+                                                    if (languageGroup.Value != null &&
+                                                    languageGroup.Value.ContainsKey(wordClass) &&
+                                                    languageGroup.Value[wordClass]?.Count > 0)
+                                                    {
+                                                        @foreach (var word in languageGroup.Value[wordClass])
+                                                        {
+                                                             <div style="font-family: 'CS Avva', 'CS-Avva', 'Coptic-Fonts', serif;">
+                                                                <a asp-controller="Words"
+                                                                   asp-action="Details"
+                                                                   asp-route-id="@word.WordId"
+                                                                   class="text-decoration-none">
+                                                                    @word.Word_text
+                                                                </a>
+                                                            </div>
+                                                        }
+                                                    }
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            
+
+
+        }
+
+        <!-- Display other word details -->
+        <dt class="col-sm-2">
+            Notes
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.notes)
+        </dd>
+        <dt class="col-sm-2">
+            IPA
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.IPA)
+        </dd>
+        <dt class="col-sm-2">
+            Pronunciation
+        </dt>
+        <dd class="col-sm-10">
+            <!-- Current pronunciation display -->
+            <div id="current-pronunciation">
+                @if (!string.IsNullOrEmpty(Model.Pronunciation))
+                {
+                    <div class="current-audio">
+                        <h5>Current Pronunciation:</h5>
+                        @{
+                            var fileId = "";
+                            if (Model.Pronunciation.Contains("/file/d/"))
+                            {
+                                var match = System.Text.RegularExpressions.Regex.Match(Model.Pronunciation, @"/file/d/([a-zA-Z0-9-_]+)");
+                                fileId = match.Success ? match.Groups[1].Value : "";
+                            }
+                            else if (Model.Pronunciation.Contains("id="))
+                            {
+                                var match = System.Text.RegularExpressions.Regex.Match(Model.Pronunciation, @"id=([a-zA-Z0-9-_]+)");
+                                fileId = match.Success ? match.Groups[1].Value : "";
+                            }
+
+                            var directDownloadUrl = !string.IsNullOrEmpty(fileId) ? $"https://drive.google.com/uc?export=download&id={fileId}" : Model.Pronunciation;
+                            var embedUrl = !string.IsNullOrEmpty(fileId) ? $"https://drive.google.com/file/d/{fileId}/preview" : Model.Pronunciation;
+
+                            // Determine audio type
+                            var audioType = "audio/webm"; // Default for modern browsers recording
+                            if (Model.Pronunciation.Contains(".wav"))
+                            {
+                                audioType = "audio/wav";
+                            }
+                            else if (Model.Pronunciation.Contains(".mp3"))
+                            {
+                                audioType = "audio/mpeg";
+                            }
+                            else if (Model.Pronunciation.Contains(".ogg"))
+                            {
+                                audioType = "audio/ogg";
+                            }
+                        }
+
+                        <!-- Debug info (remove after testing) -->
+                        <div class="alert alert-info">
+                            <small>Debug: @directDownloadUrl</small><br>
+                            <small>Original: @Model.Pronunciation</small><br>
+                            <small>Audio Type: @audioType</small>
+                        </div>
+
+                        <!-- Try direct download first -->
+                        <audio controls class="mb-2" preload="metadata" controlsList="nodownload"
+                               onerror="console.log('Audio error:', this.error); this.style.display='none';"
+                               onloadeddata="console.log('Audio loaded successfully')">
+                            <source src="@directDownloadUrl" type="@audioType">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <!-- Alternative: Try with different Google Drive URL format -->
+                        <audio controls class="mb-2" preload="metadata" controlsList="nodownload"
+                               onerror="console.log('Alternative audio error:', this.error); this.style.display='none';"
+                               onloadeddata="console.log('Alternative audio loaded successfully')">
+                            <source src="https://docs.google.com/uc?export=download&id=@fileId" type="@audioType">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <!-- Fallback: Google Drive embed -->
+                        <div class="mt-2">
+                            <small class="text-muted">If audio doesn't play above, try:</small><br>
+                            <iframe src="@embedUrl" width="100%" height="60" frameborder="0"></iframe>
+                        </div>
+
+                        <br>
+                        <small class="text-muted">
+                            <a href="@directDownloadUrl" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-download"></i> Download Audio
+                            </a>
+                        </small>
+                        <br>
+                        <button type="button" class="btn btn-danger btn-sm mt-2" onclick="deletePronunciation()">
+                            <i class="bi bi-trash"></i> Delete Pronunciation
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No pronunciation recorded</p>
+                }
+            </div>
+
+            <!-- Recording controls -->
+            <div class="mt-3">
+                <h5>Record New Pronunciation:</h5>
+                <div id="recorder-controls" style="display: none;">
+                    <button type="button" id="record-btn" class="btn btn-primary" onclick="startRecording()">
+                        <i class="bi bi-mic"></i> Start Recording
+                    </button>
+                    <button type="button" id="stop-btn" class="btn btn-danger" onclick="stopRecording()" style="display: none;">
+                        <i class="bi bi-stop"></i> Stop Recording
+                    </button>
+                    <span id="recording-indicator" class="text-danger ms-2" style="display: none;">
+                        <i class="bi bi-record-circle-fill"></i> Recording...
+                    </span>
+                </div>
+
+                <!-- Preview area -->
+                <div id="pronunciation-preview" class="mt-3"></div>
+
+                <!-- Initialize button for browsers that need explicit permission -->
+                <button type="button" class="btn btn-info btn-sm" onclick="initializeRecorder()">
+                    <i class="bi bi-mic-fill"></i> Enable Microphone
+                </button>
+            </div>
+        </dd>
+
+    </dl>
+</div>
+<br />
+<br />
+<br />
+<p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Word Explanations</h3>
+        <a asp-controller="Words" 
+           asp-action="CreateWordExplanation" 
+           asp-route-wordId="@Model.WordId" 
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Add Word Explanation
+        </a>
+    </div>
+</p>
+
+<!-- List of Explanations -->
+<h3>Explanations</h3>
+<table class="table table-hover table-bordered">
+    <thead>
+        <tr>
+            <th>Explanation</th>
+            <th>Language</th>
+            <th>Notes</th>
+            <th>Audit Information</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var explanation in Model.WordExplanations)
+        {
+            <tr>
+                <td>
+                    <div class="bidi-text" dir="auto">@Html.Raw(explanation.Explanation)</div>
+                </td>
+                <td>@explanation.Language</td>
+                <td>
+                    <div class="bidi-text" dir="auto">@Html.Raw(explanation.Notes)</div>
+                </td>
+                <!-- Direct Audit Information Display -->
+                <td>
+    <div class="audit-info-compact">
+        <!-- Created Information -->
+        <div class="mb-2">
+            <div class="d-flex align-items-center mb-1">
+                <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                <small class="fw-bold text-success">Created by:</small>
+            </div>
+            <div class="ms-3">
+                @if (explanation.CreatedByUser != null)
+                {
+                    <small class="text-muted d-block">@explanation.CreatedByUser.Email</small>
+                }
+                else
+                {
+                    <small class="text-muted d-block">Unknown user</small>
+                }
+                @{
+                    // Convert UTC to Egypt time (UTC+3)
+                    var explanationEgyptCreatedTime = explanation.CreatedAt.Value.AddHours(3);
+                }
+                <small class="text-muted d-block">@explanationEgyptCreatedTime.ToString("MMM dd, yyyy")</small>
+                <small class="text-muted d-block">@explanationEgyptCreatedTime.ToString("HH:mm")</small>
+                <small class="text-success d-block">@explanation.CreatedAt.Humanize()</small>
+            </div>
+        </div>
+
+        <!-- Modified Information (only show if modified) -->
+        @if (explanation.ModifiedByUser != null && explanation.ModifiedAt.HasValue)
+        {
+            <div class="border-top pt-2">
+                <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                    <small class="fw-bold text-warning">Modified by:</small>
+                </div>
+                <div class="ms-3">
+                    <small class="text-muted d-block">@explanation.ModifiedByUser.Email</small>
+                    @{
+                        // Convert UTC to Egypt time (UTC+3)
+                        var explanationEgyptModifiedTime = explanation.ModifiedAt.Value.AddHours(3);
+                    }
+                    <small class="text-muted d-block">@explanationEgyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                    <small class="text-muted d-block">@explanationEgyptModifiedTime.ToString("HH:mm")</small>
+                    <small class="text-warning d-block">@explanation.ModifiedAt.Value.Humanize()</small>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="border-top pt-2">
+                <small class="badge bg-light text-dark">Never modified</small>
+            </div>
+        }
+    </div>
+</td>
+                <!-- Actions Column -->
+                <td>
+                    <div class="btn-group">
+                        <a asp-controller="Words" asp-action="EditWordExplanation" asp-route-id="@explanation.ID" 
+                           class="btn btn-outline-primary btn-sm" title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <a asp-controller="Words" asp-action="DeleteWordExplanation" asp-route-id="@explanation.ID" 
+                           class="btn btn-outline-danger btn-sm" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+
+
+<!-- Add this section after the Explanations table and before the Definitions section -->
+<!-- Dictionary References Section -->
+<h3 class="mt-4">Dictionary References</h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="mb-0">References to this word in various dictionaries</p>
+    <a asp-action="AddDictionaryReference" asp-route-wordId="@Model.WordId" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle"></i> Add Dictionary Reference
+    </a>
+</div>
+
+@if (Model.DictionaryReferenceWords != null && Model.DictionaryReferenceWords.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Dictionary</th>
+                    <th>Abbreviation</th>
+                    <th>Reference (Page)</th>
+                    <th>Column</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dictRef in Model.DictionaryReferenceWords.OrderBy(dr => dr.Dictionary.DictionaryName))
+                {
+                    <tr>
+                        <td>
+                            <strong>@dictRef.Dictionary.DictionaryName</strong>
+                            @if (!string.IsNullOrEmpty(dictRef.Dictionary.Detils))
+                            {
+                                <br>
+
+                                <small class="text-muted">@dictRef.Dictionary.Detils</small>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(dictRef.Dictionary.Abbreviation))
+                            {
+                                <span class="badge bg-secondary">@dictRef.Dictionary.Abbreviation</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="fw-bold">@dictRef.Reference</span>
+                            @if (dictRef.Dictionary.MaxNumberOfPages.HasValue)
+                            {
+                                <small class="text-muted">/ @dictRef.Dictionary.MaxNumberOfPages</small>
+                            }
+                        </td>
+                        <td>
+                            @if (dictRef.Column != '\0')
+                            {
+                                <span class="badge bg-info">@dictRef.Column</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a asp-action="EditDictionaryReference"
+                                   asp-route-id="@dictRef.ID"
+                                   class="btn btn-outline-primary btn-sm"
+                                   title="Edit Reference">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form asp-action="DeleteDictionaryReference"
+                                      method="post"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Are you sure you want to delete this dictionary reference?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@dictRef.ID" />
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm"
+                                            title="Delete Reference">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No dictionary references have been added for this word yet.
+    </div>
+}
+
+<hr class="my-4">
+
+
+
+<h4 style="display:inline;">Definitions</h4>
+<a asp-action="CreateMeaning" asp-route-wordId="@Model.WordId" class="btn btn-primary">Add Definition</a>
+<a asp-action="SelectFromMeaning" asp-route-wordId="@Model.WordId" class="btn btn-secondary">Select from existing Definitions</a>
+<br /><br />
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs" id="meaningTabs" role="tablist">
+    @{
+        var tabIndex = 1;
+    }
+    @foreach (var word_meaning in Model.WordMeanings)
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(tabIndex == 1 ? "active" : "")"
+                    id="meaning-tab-@tabIndex"
+                    data-bs-toggle="tab"
+                    data-bs-target="#meaning-content-@tabIndex"
+                    type="button"
+                    role="tab">
+                Definition @tabIndex
+            </button>
+        </li>
+
+
+
+        tabIndex++;
+    }
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="meaningTabsContent">
+    @{
+        tabIndex = 1;
+    }
+    @foreach (var word_meaning in Model.WordMeanings)
+    {
+        <div class="tab-pane fade @(tabIndex == 1 ? "show active" : "")" 
+             id="meaning-content-@tabIndex" 
+             role="tabpanel">
+            
+            <!-- Definition Section -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Definition</h5>
+                    <!-- Add the Remove Definition button here -->
+                    <form asp-action="DeleteWM" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove this definition from this word? This will not delete the definition itself, only remove it from this word.');">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@word_meaning.ID" />
+    <input type="hidden" name="wordId" value="@Model.WordId" />
+    <button type="submit" class="btn btn-outline-warning btn-sm" title="Remove this definition from this word">
+        <i class="bi bi-unlink"></i> Remove Definition
+    </button>
+</form>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Language</th>
+            <th>Definition</th>
+            <th>Notes</th>
+            <th>Audit Information</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>@word_meaning.Meaning.Language</td>
+            <td>@word_meaning.Meaning.MeaningText</td>
+            <td>@word_meaning.Meaning.Notes</td>
+            <!-- Audit Information Column for Main Definition -->
+            <td>
+                <div class="audit-info-compact">
+                    <!-- Created Information -->
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                            <small class="fw-bold text-success">Created by:</small>
+                        </div>
+                        <div class="ms-3">
+                            @if (word_meaning.Meaning.CreatedByUser != null)
+                            {
+                                <small class="text-muted d-block">@word_meaning.Meaning.CreatedByUser.Email</small>
+                            }
+                            else
+                            {
+                                <small class="text-muted d-block">Unknown user</small>
+                            }
+                            @{
+                                // Convert UTC to Egypt time (UTC+2)
+                                var egyptCreatedTime1 = word_meaning.Meaning.CreatedAt.Value.AddHours(3);
+                            }
+                            <small class="text-muted d-block">@egyptCreatedTime1.ToString("MMM dd, yyyy")</small>
+                            <small class="text-muted d-block">@egyptCreatedTime1.ToString("HH:mm") </small>
+                            <small class="text-success d-block">@word_meaning.Meaning.CreatedAt.Humanize()</small>
+                        </div>
+                    </div>
+
+                    <!-- Modified Information (only show if modified) -->
+                    @if (word_meaning.Meaning.ModifiedByUser != null && word_meaning.Meaning.ModifiedAt.HasValue)
+                    {
+                        <div class="border-top pt-2">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                                <small class="fw-bold text-warning">Modified by:</small>
+                            </div>
+                            <div class="ms-3">
+                                <small class="text-muted d-block">@word_meaning.Meaning.ModifiedByUser.Email</small>
+                                @{
+                                    // Convert UTC to Egypt time (UTC+2)
+                                    var egyptModifiedTime = word_meaning.Meaning.ModifiedAt.Value.AddHours(3);
+                                }
+                                <small class="text-muted d-block">@egyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                                <small class="text-muted d-block">@egyptModifiedTime.ToString("HH:mm")</small>
+                                <small class="text-warning d-block">@word_meaning.Meaning.ModifiedAt?.Humanize()</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="border-top pt-2">
+                            <small class="badge bg-light text-dark">Never modified</small>
+                        </div>
+                    }
+                </div>
+            </td>
+            <td>
+                <a asp-action="AddChildMeaning" 
+                   asp-route-parentMeaningId="@word_meaning.MeaningID" 
+                   asp-route-wordId="@Model.WordId" 
+                   class="btn btn-primary btn-sm">Add Translation</a>
+                <a href="@Url.Action("Edit", "Meanings", new { id = @word_meaning.MeaningID})" 
+                   class="btn btn-primary btn-sm">Edit</a>
+            </td>
+        </tr>
+        @if (word_meaning.Meaning.ChildMeanings != null)
+        {
+            @foreach (var childMeaning in word_meaning.Meaning.ChildMeanings)
+            {
+                <tr>
+                    <td>@childMeaning.Language</td>
+                    <td>@childMeaning.MeaningText</td>
+                    <td>@childMeaning.Notes</td>
+                    <!-- Child Meaning Audit Information -->
+                    <td>
+                        <div class="audit-info-compact">
+                            <!-- Created Information -->
+                            <div class="mb-2">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                                    <small class="fw-bold text-success">Created by:</small>
+                                </div>
+                                <div class="ms-3">
+                                    @if (childMeaning.CreatedByUser != null)
+                                    {
+                                        <small class="text-muted d-block">@childMeaning.CreatedByUser.Email</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted d-block">Unknown user</small>
+                                    }
+                                    @{
+                                        // Convert UTC to Egypt time (UTC+2)
+                                        var childEgyptCreatedTime = childMeaning.CreatedAt.Value.AddHours(3);
+                                    }
+                                    <small class="text-muted d-block">@childEgyptCreatedTime.ToString("MMM dd, yyyy")</small>
+                                    <small class="text-muted d-block">@childEgyptCreatedTime.ToString("HH:mm") (Egypt Time)</small>
+                                    <small class="text-success d-block">@childMeaning.CreatedAt.Humanize()</small>
+                                </div>
+                            </div>
+
+                            <!-- Modified Information (only show if modified) -->
+                            @if (childMeaning.ModifiedByUser != null && childMeaning.ModifiedAt.HasValue)
+                            {
+                                <div class="border-top pt-2">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                                        <small class="fw-bold text-warning">Modified by:</small>
+                                    </div>
+                                    <div class="ms-3">
+                                        <small class="text-muted d-block">@childMeaning.ModifiedByUser.Email</small>
+                                        @{
+                                            // Convert UTC to Egypt time (UTC+2)
+                                            var childEgyptModifiedTime = childMeaning.ModifiedAt.Value.AddHours(3);
+                                        }
+                                        <small class="text-muted d-block">@childEgyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                                        <small class="text-muted d-block">@childEgyptModifiedTime.ToString("HH:mm") (Egypt Time)</small>
+                                        <small class="text-warning d-block">@childMeaning.ModifiedAt?.Humanize()</small>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="border-top pt-2">
+                                    <small class="badge bg-light text-dark">Never modified</small>
+                                </div>
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <div class="btn-group">
+                                <a href="@Url.Action("Edit", "Meanings", new { id = @childMeaning.ID })"
+                                   class="btn btn-outline-primary btn-sm" title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form asp-action="DeleteChildMeaning" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@childMeaning.ID" />
+                                    <input type="hidden" name="wordId" value="@Model.WordId" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to delete this meaning?');"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+                </div>
+            </div>
+
+            <!-- Examples Section -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Examples</h5>
+                    <a asp-action="CreateExample"
+                       asp-route-wordMeaningId="@word_meaning.ID"
+                       asp-route-wordId="@Model.WordId"
+                       asp-route-language="@word_meaning.Word.Language"
+                       class="btn btn-primary btn-sm">Add Example</a>
+                </div>
+                <div class="card-body">
+                    @if (word_meaning.Examples != null && word_meaning.Examples.Any())
+                    {
+                        @foreach (var example in word_meaning.Examples)
+                        {
+                            <div class="example-block mb-3">
+                                <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Example</th>
+            <th>Reference</th>
+            <th>Pronunciation</th>
+            <th>Notes</th>
+            <th>Language</th>
+            <th>Audit Information</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Main example -->
+        <tr>
+            <td>@example.ExampleText</td>
+            <td>@example.Reference</td>
+            <td>@example.Pronunciation</td>
+            <td>@example.Notes</td>
+            <td>@example.Language</td>
+            <!-- Audit Information Column for Main Example -->
+            <td>
+                <div class="audit-info-compact">
+                    <!-- Created Information -->
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                            <small class="fw-bold text-success">Created by:</small>
+                        </div>
+                        <div class="ms-3">
+                            @if (example.CreatedByUser != null)
+                            {
+                                <small class="text-muted d-block">@example.CreatedByUser.Email</small>
+                            }
+                            else
+                            {
+                                <small class="text-muted d-block">Unknown user</small>
+                            }
+                            @{
+                                // Convert UTC to Egypt time (UTC+2)
+                                var exampleEgyptCreatedTime = example.CreatedAt.Value.AddHours(3);
+                            }
+                            <small class="text-muted d-block">@exampleEgyptCreatedTime.ToString("MMM dd, yyyy")</small>
+                            <small class="text-muted d-block">@exampleEgyptCreatedTime.ToString("HH:mm") (Egypt Time)</small>
+                            <small class="text-success d-block">@example.CreatedAt.Humanize()</small>
+                        </div>
+                    </div>
+
+                    <!-- Modified Information (only show if modified) -->
+                    @if (example.ModifiedByUser != null && example.ModifiedAt.HasValue)
+                    {
+                        <div class="border-top pt-2">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                                <small class="fw-bold text-warning">Modified by:</small>
+                            </div>
+                            <div class="ms-3">
+                                <small class="text-muted d-block">@example.ModifiedByUser.Email</small>
+                                @{
+                                    // Convert UTC to Egypt time (UTC+2)
+                                    var exampleEgyptModifiedTime = example.ModifiedAt.Value.AddHours(3);
+                                }
+                                <small class="text-muted d-block">@exampleEgyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                                <small class="text-muted d-block">@exampleEgyptModifiedTime.ToString("HH:mm") (Egypt Time)</small>
+                                <small class="text-warning d-block">@example.ModifiedAt?.Humanize()</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="border-top pt-2">
+                            <small class="badge bg-light text-dark">Never modified</small>
+                        </div>
+                    }
+                </div>
+            </td>
+            <td>
+                <div class="btn-group">
+                    <a asp-action="ExampleDetails" asp-route-id="@example.ID"
+                       class="btn btn-info btn-sm" title="View Details">
+                        <i class="bi bi-eye"></i> Details
+                    </a>
+                    <a asp-action="CreateChildExample"
+                       asp-route-parentExampleId="@example.ID"
+                       asp-route-wordId="@Model.WordId"
+                       class="btn btn-primary btn-sm">Add Translation</a>
+                    <div class="btn-group">
+                        <a asp-action="EditExample" asp-route-id="@example.ID"
+                           class="btn btn-outline-primary btn-sm" title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <form asp-action="DeleteExample" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@example.ID" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Are you sure?');" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <!-- Child examples -->
+        @if (example.ChildExamples != null)
+        {
+            @foreach (var childExample in example.ChildExamples)
+            {
+                <tr>
+                    <td>@childExample.ExampleText</td>
+                    <td>@childExample.Reference</td>
+                    <td>@childExample.Pronunciation</td>
+                    <td>@childExample.Notes</td>
+                    <td>@childExample.Language</td>
+                    <!-- Child Example Audit Information -->
+                    <td>
+    <div class="audit-info-compact">
+        <!-- Created Information -->
+        <div class="mb-2">
+            <div class="d-flex align-items-center mb-1">
+                <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                <small class="fw-bold text-success">Created by:</small>
+            </div>
+            <div class="ms-3">
+                @if (childExample.CreatedByUser != null)
+                {
+                    <small class="text-muted d-block">@childExample.CreatedByUser.Email</small>
+                }
+                else
+                {
+                    <small class="text-muted d-block">Unknown user</small>
+                }
+                @{
+                    // Convert UTC to Egypt time (UTC+3)
+                    var childExampleEgyptCreatedTime = childExample.CreatedAt.Value.AddHours(3);
+                }
+                <small class="text-muted d-block">@childExampleEgyptCreatedTime.ToString("MMM dd, yyyy")</small>
+                <small class="text-muted d-block">@childExampleEgyptCreatedTime.ToString("HH:mm")</small>
+                <small class="text-success d-block">@childExample.CreatedAt.Humanize()</small>
+            </div>
+        </div>
+
+        <!-- Modified Information (only show if modified) -->
+        @if (childExample.ModifiedByUser != null && childExample.ModifiedAt.HasValue)
+        {
+            <div class="border-top pt-2">
+                <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                    <small class="fw-bold text-warning">Modified by:</small>
+                </div>
+                <div class="ms-3">
+                    <small class="text-muted d-block">@childExample.ModifiedByUser.Email</small>
+                    @{
+                        // Convert UTC to Egypt time (UTC+3)
+                        var childExampleEgyptModifiedTime = childExample.ModifiedAt.Value.AddHours(3);
+                    }
+                    <small class="text-muted d-block">@childExampleEgyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                    <small class="text-muted d-block">@childExampleEgyptModifiedTime.ToString("HH:mm")</small>
+                    <small class="text-warning d-block">@childExample.ModifiedAt.Value.Humanize()</small>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="border-top pt-2">
+                <small class="badge bg-light text-dark">Never modified</small>
+            </div>
+        }
+    </div>
+</td>
+                    <td>
+                        <div class="btn-group">
+                            <a asp-action="ExampleDetails" asp-route-id="@childExample.ID"
+                               class="btn btn-info btn-sm" title="View Details">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                            <a asp-action="EditChildExample" 
+                               asp-route-id="@childExample.ID" 
+                               class="btn btn-primary btn-sm">Edit</a>
+                            <form asp-action="DeleteExample" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@childExample.ID" />
+                                <button type="submit" 
+                                        class="btn btn-danger btn-sm" 
+                                        onclick="return confirm('Are you sure?');">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Bible References Section -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Bible References</h5>
+                    <a asp-action="CreateBibleReference"
+                       asp-route-wordMeaningId="@word_meaning.ID"
+                       class="btn btn-primary btn-sm">Add Bible Reference</a>
+                </div>
+                <div class="card-body">
+                    @if (word_meaning.WordMeaningBibles != null && word_meaning.WordMeaningBibles.Any())
+                    {
+                        <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Text</th>
+            <th>Reference</th>
+            <th>Edition</th>
+            <th>Language</th>
+            <th>Audit Information</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var wordMeaningBible in word_meaning.WordMeaningBibles)
+        {
+            <tr>
+                <td>@wordMeaningBible.Bible.Text</td>
+                <td>@wordMeaningBible.Bible.Book @wordMeaningBible.Bible.Chapter:@wordMeaningBible.Bible.Verse</td>
+                <td>@wordMeaningBible.Bible.Edition</td>
+                <td>@wordMeaningBible.Bible.Language</td>
+                <!-- Audit Information Column for WordMeaningBible -->
+                <td>
+                    <div class="audit-info-compact">
+                        <!-- Created Information -->
+                        <div class="mb-2">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-person-plus text-success me-1" style="font-size: 0.8rem;"></i>
+                                <small class="fw-bold text-success">Created by:</small>
+                            </div>
+                            <div class="ms-3">
+                                @if (wordMeaningBible.CreatedByUser != null)
+                                {
+                                    <small class="text-muted d-block">@wordMeaningBible.CreatedByUser.Email</small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted d-block">Unknown user</small>
+                                }
+                                @{
+                                    // Convert UTC to Egypt time (UTC+2)
+                                    var bibleEgyptCreatedTime = wordMeaningBible.CreatedAt.Value.AddHours(3);
+                                }
+                                <small class="text-muted d-block">@bibleEgyptCreatedTime.ToString("MMM dd, yyyy")</small>
+                                <small class="text-muted d-block">@bibleEgyptCreatedTime.ToString("HH:mm") (Egypt Time)</small>
+                                <small class="text-success d-block">@wordMeaningBible.CreatedAt.Humanize()</small>
+                            </div>
+                        </div>
+
+                        <!-- Modified Information (only show if modified) -->
+                        @if (wordMeaningBible.ModifiedByUser != null && wordMeaningBible.ModifiedAt.HasValue)
+                        {
+                            <div class="border-top pt-2">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-person-gear text-warning me-1" style="font-size: 0.8rem;"></i>
+                                    <small class="fw-bold text-warning">Modified by:</small>
+                                </div>
+                                <div class="ms-3">
+                                    <small class="text-muted d-block">@wordMeaningBible.ModifiedByUser.Email</small>
+                                    @{
+                                        // Convert UTC to Egypt time (UTC+2)
+                                        var bibleEgyptModifiedTime = wordMeaningBible.ModifiedAt.Value.AddHours(3);
+                                    }
+                                    <small class="text-muted d-block">@bibleEgyptModifiedTime.ToString("MMM dd, yyyy")</small>
+                                    <small class="text-muted d-block">@bibleEgyptModifiedTime.ToString("HH:mm") (Egypt Time)</small>
+                                    <small class="text-warning d-block">@wordMeaningBible.ModifiedAt?.Humanize()</small>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="border-top pt-2">
+                                <small class="badge bg-light text-dark">Never modified</small>
+                            </div>
+                        }
+                    </div>
+                </td>
+                <td>
+                    <div class="btn-group">
+                        <div class="btn-group">
+                            <a asp-action="EditBibleReference" asp-route-id="@wordMeaningBible.ID"
+                               class="btn btn-outline-primary btn-sm" title="Edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form asp-action="DeleteBibleReference" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@wordMeaningBible.ID" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm"
+                                        onclick="return confirm('Are you sure?');" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            @if (ViewBag.RelatedBibleVerses != null && 
+                 ViewBag.RelatedBibleVerses.ContainsKey(wordMeaningBible.BibleID))
+            {
+                @foreach (var relatedBible in ViewBag.RelatedBibleVerses[wordMeaningBible.BibleID])
+                {
+                    <tr class="table-secondary">
+                        <td>@relatedBible.Text</td>
+                        <td>@relatedBible.Book @relatedBible.Chapter:@relatedBible.Verse</td>
+                        <td>@relatedBible.Edition</td>
+                        <td>@relatedBible.Language</td>
+                        <!-- Related Bible verses don't have audit info since they're just references -->
+                        <td>
+                            <small class="text-muted">Related verse</small>
+                        </td>
+                        <td></td>
+                    </tr>
+                }
+            }
+        }
+    </tbody>
+</table>
+                    }
+                </div>
+            </div>
+
+            <!-- Related Words Section -->
+            @if (word_meaning?.Meaning?.WordMeanings != null)
+            {
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Related Words by Language</h3>
+                         <div class="btn-group">
+        <a asp-action="CreateWordAddedToMeaning"
+           asp-route-meaningId="@word_meaning.MeaningID"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Create New Word
+        </a>
+        <a asp-action="SelectWordForMeaning"
+           asp-route-meaningId="@word_meaning.MeaningID"
+           asp-route-currentWordId="@Model.WordId"
+           class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle"></i> Add Existing Word
+        </a>
+    </div>
+                    </div>
+                    @{
+                        var groupedWords = word_meaning.Meaning.WordMeanings
+                        .Where(w => w.WordID != Model.WordId) // Exclude current word
+                        .GroupBy(w => w.Word.Language)
+                        .OrderBy(g => g.Key);
+
+                        // Create a helper function to get language display name
+                        var languagesList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+            {
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "AR", Text = "Arabic" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "FR", Text = "French" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "EN", Text = "English" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "RU", Text = "Russian" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "DE", Text = "German" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "IT", Text = "Italian" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "HE", Text = "Hebrew" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "GR", Text = "Greek" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "ARC", Text = "Aramaic" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "EG", Text = "Egyptian" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-B", Text = "Coptic - B" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-S", Text = "Coptic - S" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-Sa", Text = "Coptic - Sa" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-Sf", Text = "Coptic - Sf" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-A", Text = "Coptic - A" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-sA", Text = "Coptic - sA" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-F", Text = "Coptic - F" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-Fb", Text = "Coptic - Fb" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-O", Text = "Coptic - O" },
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = "C-NH", Text = "Coptic - NH" }
+            };
+
+                        string GetLanguageDisplayName(string languageCode)
+                        {
+                            var language = languagesList.FirstOrDefault(l => l.Value == languageCode);
+                            return language?.Text ?? languageCode;
+                        }
+                    }
+
+                    @foreach (var languageGroup in groupedWords)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h4>@GetLanguageDisplayName(languageGroup.Key)</h4>
+                                <small class="text-muted">@languageGroup.Count() word(s)</small>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    @foreach (var relatedWord in languageGroup.OrderBy(w => w.Word.Word_text))
+                                    {
+                                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <a asp-action="Details" asp-route-id="@relatedWord.Word.WordId" class="btn btn-link">
+                                                    @relatedWord.Word.Word_text
+                                                </a>
+                                                @if (!string.IsNullOrEmpty(relatedWord.Word.Class))
+                                                {
+                                                    <span class="text-muted">(@relatedWord.Word.Class)</span>
+                                                }
+                                            </div>
+                                            <form asp-action="DeleteWM" method="post" style="display:inline;"
+                                                  onsubmit="return confirm('Are you sure you want to remove this word from this meaning?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@relatedWord.ID" />
+                                                <input type="hidden" name="wordId" value="@Model.WordId" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove this word from meaning">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                    @if (!groupedWords.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No other words are currently linked to this meaning.
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        tabIndex++;
+    }
+</div>
+
+
+<br />
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Manage Word</h5>
+        <p class="card-text">You can edit or delete this word using the buttons below:</p>
+        <div class="btn-group" role="group">
+            <a asp-action="Edit" asp-route-id="@Model.WordId" class="btn btn-sm btn-primary" title="Edit this word">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a asp-action="Delete" asp-route-id="@Model.WordId" class="btn btn-sm btn-danger" title="Delete this word">
+                <i class="bi bi-trash"></i> Delete
+            </a>
+        </div>
+    </div>
+</div>
+
+
+<!-- Add this style section at the bottom of the file if it doesn't exist, or add the content to the existing style section -->
+<style>
+    /* Bidirectional text handling */
+.bidi-text {
+    unicode-bidi: embed;
+    text-align: start;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Arabic text styling */
+[dir="rtl"] .bidi-text {
+    font-family: "Arial", sans-serif;
+}
+</style>
+
+<!-- ... rest of the existing code ... -->
+@section Scripts {
+    <script src="~/js/audio-recorder.js"></script>
+    <script>
+        function updateCompletionStatus(wordId, fieldName, value) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            const formData = new FormData();
+            formData.append('wordId', wordId);
+            formData.append('fieldName', fieldName);
+            formData.append('value', value === null ? '' : value.toString());
+            formData.append('__RequestVerificationToken', token);
+
+            fetch('/Words/UpdateCompletionStatus', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showNotification('Status updated successfully!', 'success');
+                    
+                    // Reload the page to reflect changes
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error updating status: ' + (data.message || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error updating status', 'danger');
+            });
+        }
+
+        // Function to show notifications
+        function showNotification(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        function updatePronunciationDisplay(pronunciationUrl) {
+            const container = document.getElementById('current-pronunciation');
+
+            if (pronunciationUrl) {
+                // Extract file ID from Google Drive URL
+                let fileId = '';
+                if (pronunciationUrl.includes('/file/d/')) {
+                    const match = pronunciationUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+                    fileId = match ? match[1] : '';
+                } else if (pronunciationUrl.includes('id=')) {
+                    const match = pronunciationUrl.match(/id=([a-zA-Z0-9-_]+)/);
+                    fileId = match ? match[1] : '';
+                }
+
+                const directDownloadUrl = fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : pronunciationUrl;
+                const embedUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : pronunciationUrl;
+
+                // Determine audio type
+                let audioType = 'audio/webm';
+                if (pronunciationUrl.includes('.wav')) {
+                    audioType = 'audio/wav';
+                } else if (pronunciationUrl.includes('.mp3')) {
+                    audioType = 'audio/mpeg';
+                } else if (pronunciationUrl.includes('.ogg')) {
+                    audioType = 'audio/ogg';
+                }
+
+                container.innerHTML = `
+                    <div class="current-audio">
+                        <h5>Current Pronunciation:</h5>
+
+                        <!-- Debug info -->
+                        <div class="alert alert-info">
+                            <small>Debug: ${directDownloadUrl}</small><br>
+                            <small>Original: ${pronunciationUrl}</small><br>
+                            <small>Audio Type: ${audioType}</small>
+                        </div>
+
+                        <!-- Primary audio element -->
+                        <audio controls class="mb-2" preload="metadata" controlsList="nodownload"
+                               onerror="console.log('Audio error:', this.error); this.style.display='none';"
+                               onloadeddata="console.log('Audio loaded successfully')">
+                            <source src="${directDownloadUrl}" type="${audioType}">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <!-- Alternative audio element -->
+                        <audio controls class="mb-2" preload="metadata" controlsList="nodownload"
+                               onerror="console.log('Alternative audio error:', this.error); this.style.display='none';"
+                               onloadeddata="console.log('Alternative audio loaded successfully')">
+                            <source src="https://docs.google.com/uc?export=download&id=${fileId}" type="${audioType}">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <!-- Fallback: Google Drive embed -->
+                        <div class="mt-2">
+                            <small class="text-muted">If audio doesn't play above, try:</small><br>
+                            <iframe src="${embedUrl}" width="100%" height="60" frameborder="0"></iframe>
+                        </div>
+
+                        <br>
+                        <small class="text-muted">
+                            <a href="${directDownloadUrl}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-download"></i> Download Audio
+                            </a>
+                        </small>
+                        <br>
+                        <button type="button" class="btn btn-danger btn-sm mt-2" onclick="deletePronunciation()">
+                            <i class="bi bi-trash"></i> Delete Pronunciation
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<p class="text-muted">No pronunciation recorded</p>';
+            }
+        }
+
+        function deletePronunciation() {
+            if (!confirm('Are you sure you want to delete this pronunciation?')) {
+                return;
+            }
+
+            const wordId = document.getElementById('word-id').value;
+            console.log('WordId from input:', wordId); // Debug log
+
+            if (!wordId || wordId === '0') {
+                alert('Word ID not found');
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            const formData = new FormData();
+            formData.append('wordId', wordId);
+            formData.append('__RequestVerificationToken', token);
+
+            fetch('/Words/DeletePronunciation', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    // Update the display to show no pronunciation
+                    updatePronunciationDisplay(null);
+                    alert('Pronunciation deleted successfully');
+                } else {
+                    alert('Error deleting pronunciation: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting pronunciation');
+            });
+        }
+
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+}
+

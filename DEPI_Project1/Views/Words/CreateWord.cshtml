@@ -1,0 +1,81 @@
+﻿@model Word
+
+@{
+    ViewData["Title"] = "Create Word";
+}
+
+<h1>Create Word</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="CreateWord" asp-route-meaningId="@ViewBag.MeaningId">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Word_text" class="control-label"></label>
+                <input asp-for="Word_text" class="form-control" />
+                <span asp-validation-for="Word_text" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Language"></label>
+                <select asp-for="Language" class="form-control">
+                    @foreach (var item in ViewBag.Languages as SelectList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+
+
+            <div class="form-group">
+                <label asp-for="Class" class="control-label"></label>
+                <input asp-for="Class" class="form-control" />
+                <span asp-validation-for="Class" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="GroupID" class="control-label">Group</label>
+                <select asp-for="GroupID" class="form-control" asp-items="ViewBag.GroupID"></select>
+                <span asp-validation-for="GroupID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="RootID" class="control-label">Root</label>
+                <select asp-for="RootID" class="form-control" asp-items="ViewBag.RootID"></select>
+                <span asp-validation-for="RootID" class="text-danger"></span>
+            </div>
+
+
+            <div class="form-group">
+                <label asp-for="notes" class="control-label"></label>
+                <input asp-for="notes" class="form-control" />
+                <span asp-validation-for="notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IPA" class="control-label"></label>
+                <input asp-for="IPA" class="form-control" />
+                <span asp-validation-for="IPA" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Pronunciation" class="control-label"></label>
+                <input asp-for="Pronunciation" class="form-control" />
+                <span asp-validation-for="Pronunciation" class="text-danger"></span>
+            </div>
+
+            <!-- Add fields for other properties like Language, Class, Notes, etc. -->
+
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Details" asp-route-id="@ViewBag.MeaningId">Back to Meaning Details</a>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

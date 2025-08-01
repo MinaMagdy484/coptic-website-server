@@ -1,0 +1,147 @@
+﻿@model List<Word>
+@{
+    ViewData["Title"] = "Select Word for Group";
+}
+
+<h1>Add Existing Word to Group</h1>
+<h4>Group: @ViewBag.GroupName</h4>
+
+<div class="row">
+    <div class="col-md-10">
+        <form method="get" class="mb-4">
+            <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" name="search" value="@ViewBag.SearchText"
+                               class="form-control" placeholder="Search for words..." />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select name="searchType" class="form-select">
+                        @if (ViewBag.SearchType == "exact")
+                        {
+                            <option value="exact" selected>Exact Word</option>
+                        }
+                        else
+                        {
+                            <option value="exact">Exact Word</option>
+                        }
+
+                        @if (ViewBag.SearchType == "contain")
+                        {
+                            <option value="contain" selected>Contains</option>
+                        }
+                        else
+                        {
+                            <option value="contain">Contains</option>
+                        }
+
+                        @if (ViewBag.SearchType == "start")
+                        {
+                            <option value="start" selected>Starts With</option>
+                        }
+                        else
+                        {
+                            <option value="start">Starts With</option>
+                        }
+
+                        @if (ViewBag.SearchType == "end")
+                        {
+                            <option value="end" selected>Ends With</option>
+                        }
+                        else
+                        {
+                            <option value="end">Ends With</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(ViewBag.SearchText))
+        {
+            @if (Model.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Search Results (@Model.Count words found) - @ViewBag.SearchType search for "@ViewBag.SearchText"</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Word</th>
+                                        <th>Language</th>
+                                        <th>Class</th>
+                                        <th>Current Group</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var word in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-controller="Words" asp-action="Details" asp-route-id="@word.WordId">
+                                                    @word.Word_text
+                                                </a>
+                                            </td>
+                                            <td>@word.Language</td>
+                                            <td>@word.Class</td>
+                                            <td>
+                                                @if (word.GroupID.HasValue)
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        @word.GroupWord?.Name
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">No Group</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <form asp-action="AddWordToGroup" method="post" style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="wordId" value="@word.WordId" />
+                                                    <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+                                                    <button type="submit" class="btn btn-success btn-sm"
+                                                            onclick="return confirm('Add this word to the group?');">
+                                                        <i class="bi bi-plus-circle"></i> Add to Group
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No words found with @ViewBag.SearchType search for "@ViewBag.SearchText".
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-secondary">
+                <i class="bi bi-search"></i> Enter a search term to find words to add to this group.
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Details" asp-route-id="@ViewBag.GroupId" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Group
+    </a>
+</div>

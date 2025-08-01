@@ -1,0 +1,44 @@
+﻿@model WordExplanation
+
+@{
+    ViewData["Title"] = "Delete Word Explanation";
+}
+
+<h2>Delete Word Explanation</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>Explanation</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Explanation)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Explanation)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Language)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Language)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Notes)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Notes)
+        </dd>
+    </dl>
+
+    <form asp-action="DeleteWordExplanation">
+        <input type="hidden" asp-for="ID" />
+        <input type="submit" value="Delete" class="btn btn-danger" /> |
+        <a asp-action="Details" asp-controller="Words" asp-route-id="@Model.WordID">Back to Word</a>
+    </form>
+</div>
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}

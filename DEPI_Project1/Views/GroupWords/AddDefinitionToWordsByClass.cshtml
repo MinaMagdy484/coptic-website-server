@@ -1,0 +1,74 @@
+@model Meaning
+@{
+    ViewData["Title"] = "Add Definition to Words by Class";
+    var groupId = ViewBag.GroupId;
+    var wordClass = ViewBag.WordClass;
+}
+
+<h1>Add Definition to Words by Class</h1>
+<h4>Group: @ViewBag.GroupName</h4>
+<h5>Word Class: <span class="badge bg-primary">@wordClass</span></h5>
+<hr />
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    This definition will be added to <strong>@ViewBag.WordCount</strong> words with class "<strong>@wordClass</strong>" in this group.
+</div>
+
+<!-- Show words that will get this definition -->
+@if (ViewBag.GroupWords != null && ((List<Word>)ViewBag.GroupWords).Any())
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6>Words that will receive this definition:</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var word in (List<Word>)ViewBag.GroupWords)
+                {
+                    <span class="badge bg-secondary">@word.Word_text (@word.Language)</span>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="AddDefinitionToWordsByClass" method="post">
+            <input type="hidden" name="groupId" value="@groupId" />
+            <input type="hidden" name="wordClass" value="@wordClass" />
+            
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="MeaningText" class="control-label">Definition Text <span class="text-danger">*</span></label>
+                <textarea asp-for="MeaningText" class="form-control" rows="4" placeholder="Enter the definition text..." required></textarea>
+                <span asp-validation-for="MeaningText" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Language" class="control-label">Language <span class="text-danger">*</span></label>
+                <select asp-for="Language" class="form-select" asp-items="ViewBag.Languages" required>
+                    <option value="">-- Select Language --</option>
+                </select>
+                <span asp-validation-for="Language" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Notes" class="control-label">Notes (Optional)</label>
+                <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Additional notes about this definition..."></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <input type="submit" value="Add Definition to @wordClass Words" class="btn btn-success" />
+                <a asp-action="Details" asp-route-id="@groupId" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

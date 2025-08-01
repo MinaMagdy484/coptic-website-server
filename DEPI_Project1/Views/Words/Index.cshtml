@@ -1,0 +1,932 @@
+﻿@model PagedResult<Word>
+
+@{
+    ViewData["Title"] = "Words Dictionary";
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5 fw-bold text-primary">
+                        <i class="bi bi-book-half me-2"></i>Words Dictionary
+                    </h1>
+                    <p class="text-muted mb-0">Browse and manage dictionary words</p>
+                </div>
+                <div>
+                    <a asp-action="Create" class="btn btn-success btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Word
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form method="get">
+                        <!-- First Row: Text Search -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-4">
+                                <label for="search" class="form-label fw-semibold">
+                                    <i class="bi bi-search me-1"></i>Search Terms
+                                </label>
+                                <input name="search" 
+                                       id="search"
+                                       value="@ViewBag.SearchText" 
+                                       class="form-control form-control-lg" 
+                                       placeholder="Enter search term or ID (e.g., ND-123)..." />
+                                <small class="text-muted">
+                                    Search by word, group name, definition, or ID (use ND-123 format for ID search)
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label for="filterType" class="form-label fw-semibold">
+                                    <i class="bi bi-filter me-1"></i>Filter By
+                                </label>
+                                <select name="filterType" class="form-select">
+    @if (ViewBag.FilterType == "word")
+    {
+        <option value="word" selected>Word Text</option>
+    }
+    else
+    {
+        <option value="word">Word Text</option>
+    }
+    
+    @if (ViewBag.FilterType == "group")
+    {
+        <option value="group" selected>Group Name</option>
+    }
+    else
+    {
+        <option value="group">Group Name</option>
+    }
+    
+    @if (ViewBag.FilterType == "meaning")
+    {
+        <option value="meaning" selected>Definition</option>
+    }
+    else
+    {
+        <option value="meaning">Definition</option>
+    }
+</select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label for="searchType" class="form-label fw-semibold">
+                                    <i class="bi bi-funnel me-1"></i>Search Type
+                                </label>
+                                <select name="searchType" class="form-select">
+    @if (ViewBag.SearchType == "exact")
+    {
+        <option value="exact" selected>Exact Match</option>
+    }
+    else
+    {
+        <option value="exact">Exact Match</option>
+    }
+    
+    @if (ViewBag.SearchType == "contain")
+    {
+        <option value="contain" selected>Contains</option>
+    }
+    else
+    {
+        <option value="contain">Contains</option>
+    }
+    
+    @if (ViewBag.SearchType == "start")
+    {
+        <option value="start" selected>Starts With</option>
+    }
+    else
+    {
+        <option value="start">Starts With</option>
+    }
+    
+    @if (ViewBag.SearchType == "end")
+    {
+        <option value="end" selected>Ends With</option>
+    }
+    else
+    {
+        <option value="end">Ends With</option>
+    }
+</select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label for="pageSize" class="form-label fw-semibold">
+                                    <i class="bi bi-list-ol me-1"></i>Per Page
+                                </label>
+                                <select name="pageSize" class="form-select">
+                                    @if (ViewBag.PageSize == 10)
+                                    {
+                                        <option value="10" selected>10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    }
+                                    else if (ViewBag.PageSize == 20)
+                                    {
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    }
+                                    else if (ViewBag.PageSize == 50)
+                                    {
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50" selected>50</option>
+                                        <option value="100">100</option>
+                                    }
+                                    else if (ViewBag.PageSize == 100)
+                                    {
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100" selected>100</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    }
+                                </select>
+
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Second Row: Status Filters -->
+                        <div class="row align-items-end">
+                            <div class="col-md-2">
+                                <label for="completionFilter" class="form-label fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i>Completion Status
+                                </label>
+                                <select name="completionFilter" class="form-select">
+    @if (string.IsNullOrEmpty(ViewBag.CompletionFilter as string))
+    {
+        <option value="" selected>All Completion</option>
+    }
+    else
+    {
+        <option value="">All Completion</option>
+    }
+    
+    @if (ViewBag.CompletionFilter == "completed")
+    {
+        <option value="completed" selected>Completed</option>
+    }
+    else
+    {
+        <option value="completed">Completed</option>
+    }
+    
+    @if (ViewBag.CompletionFilter == "incomplete")
+    {
+        <option value="incomplete" selected>Incomplete</option>
+    }
+    else
+    {
+        <option value="incomplete">Incomplete</option>
+    }
+    
+    @if (ViewBag.CompletionFilter == "unknown")
+    {
+        <option value="unknown" selected>Unknown</option>
+    }
+    else
+    {
+        <option value="unknown">Unknown</option>
+    }
+</select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="review1Filter" class="form-label fw-semibold">
+                                    <i class="bi bi-clipboard-check me-1"></i>Review 1
+                                </label>
+                                <select name="review1Filter" class="form-select">
+                                    @if (string.IsNullOrEmpty(ViewBag.Review1Filter as string))
+                                    {
+                                        <option value="" selected>All Review 1</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="">All Review 1</option>
+                                    }
+
+                                    @if (ViewBag.Review1Filter == "passed")
+                                    {
+                                        <option value="passed" selected>Passed</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="passed">Passed</option>
+                                    }
+
+                                    @if (ViewBag.Review1Filter == "failed")
+                                    {
+                                        <option value="failed" selected>Failed</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="failed">Failed</option>
+                                    }
+
+                                    @if (ViewBag.Review1Filter == "pending")
+                                    {
+                                        <option value="pending" selected>Pending</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="pending">Pending</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="review2Filter" class="form-label fw-semibold">
+                                    <i class="bi bi-clipboard2-check me-1"></i>Review 2
+                                </label>
+                                <select name="review2Filter" class="form-select">
+                                    @if (string.IsNullOrEmpty(ViewBag.Review2Filter as string))
+                                    {
+                                        <option value="" selected>All Review 2</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="">All Review 2</option>
+                                    }
+
+                                    @if (ViewBag.Review2Filter == "passed")
+                                    {
+                                        <option value="passed" selected>Passed</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="passed">Passed</option>
+                                    }
+
+                                    @if (ViewBag.Review2Filter == "failed")
+                                    {
+                                        <option value="failed" selected>Failed</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="failed">Failed</option>
+                                    }
+
+                                    @if (ViewBag.Review2Filter == "pending")
+                                    {
+                                        <option value="pending" selected>Pending</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="pending">Pending</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="showCopticOnly" class="form-label fw-semibold">
+                                    <i class="bi bi-globe me-1"></i>Language Filter
+                                </label>
+                                <div class="form-check form-switch mt-2">
+                                    @if (ViewBag.ShowCopticOnly == true)
+                                    {
+                                        <input class="form-check-input" type="checkbox" name="showCopticOnly" value="true" id="showCopticOnly" checked />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-check-input" type="checkbox" name="showCopticOnly" value="true" id="showCopticOnly" />
+                                    }
+                                    
+                                    <label class="form-check-label" for="showCopticOnly">
+                                        Coptic Only (C-*)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-secondary w-100" onclick="clearFilters()">
+                                    <i class="bi bi-x-circle me-1"></i>Clear Filters
+                                </button>
+                            </div>
+
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-funnel me-1"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden field to maintain current page on form changes -->
+                        <input type="hidden" name="page" value="1" />
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section with Pagination Info -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-semibold">
+                            <i class="bi bi-list-ul me-2"></i>Dictionary Words
+                            @if (Model.TotalCount > 0)
+                            {
+                                <span class="badge bg-primary ms-2">@Model.TotalCount total</span>
+                            }
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <!-- Active Filters Display -->
+                            @if (!string.IsNullOrEmpty(ViewBag.SearchText as string) || 
+                                 !string.IsNullOrEmpty(ViewBag.CompletionFilter as string) || 
+                                 !string.IsNullOrEmpty(ViewBag.Review1Filter as string) || 
+                                 !string.IsNullOrEmpty(ViewBag.Review2Filter as string) || 
+                                 ViewBag.ShowCopticOnly == true)
+                            {
+                                <div class="me-3">
+                                    <small class="text-muted">Active filters:</small>
+                                    @if (!string.IsNullOrEmpty(ViewBag.SearchText as string))
+                                    {
+                                        <span class="badge bg-info ms-1">Search: "@ViewBag.SearchText"</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.CompletionFilter as string))
+                                    {
+                                        <span class="badge bg-success ms-1">Completion: @ViewBag.CompletionFilter</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.Review1Filter as string))
+                                    {
+                                        <span class="badge bg-warning ms-1">Review1: @ViewBag.Review1Filter</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.Review2Filter as string))
+                                    {
+                                        <span class="badge bg-warning ms-1">Review2: @ViewBag.Review2Filter</span>
+                                    }
+                                    @if (ViewBag.ShowCopticOnly == true)
+                                    {
+                                        <span class="badge bg-secondary ms-1">Coptic Only</span>
+                                    }
+                                </div>
+                            }
+                            @if (Model.TotalCount > 0)
+                            {
+                                <small class="text-info">
+                                    (@Model.StartItem - @Model.EndItem of @Model.TotalCount)
+                                </small>
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    @if (Model.Items != null && Model.Items.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="text-center">
+                                            <i class="bi bi-hash me-1"></i>ID
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-type me-1"></i>@Html.DisplayNameFor(model => model.Items.First().Word_text)
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-translate me-1"></i>@Html.DisplayNameFor(model => model.Items.First().Language)
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-tag me-1"></i>@Html.DisplayNameFor(model => model.Items.First().Class)
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-collection me-1"></i>Group
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-chat-text me-1"></i>Definitions
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-check-circle me-1"></i>Status
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-volume-up me-1"></i>Audio
+                                        </th>
+                                        <th>
+                                            <i class="bi bi-diagram-3 me-1"></i>Root
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="bi bi-gear me-1"></i>Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Items)
+                                    {
+                                        <tr>
+                                            <td class="text-center fw-bold text-muted">
+                                                ND-@item.WordId
+                                            </td>
+
+                                            <td>
+                                                <div class="fw-semibold text-primary">
+                                                    @Html.DisplayFor(modelItem => item.Word_text)
+                                                </div>
+                                            </td>
+                                            
+                                            <td>
+                                                <span class="badge @(item.Language?.StartsWith("C-") == true ? "bg-success" : "bg-info")">
+                                                    @Html.DisplayFor(modelItem => item.Language)
+                                                </span>
+                                            </td>
+                                            
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    @(string.IsNullOrEmpty(item.Class) ? "Unknown" : item.Class)
+                                                </span>
+                                            </td>
+                                            
+                                            <td>
+                                                @if (item.GroupWord != null)
+                                                {
+                                                    <div class="small">
+                                                        <strong>@item.GroupWord.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(item.GroupWord.OriginLanguage))
+                                                        {
+                                                            <br><span class="text-muted">(@item.GroupWord.OriginLanguage)</span>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">No group</span>
+                                                }
+                                            </td>
+                                            
+                                            <td>
+                                                @if (item.WordMeanings != null && item.WordMeanings.Any())
+                                                {
+                                                    <div class="small">
+                                                        @foreach (var wm in item.WordMeanings.Take(2))
+                                                        {
+                                                            <div class="mb-1">
+                                                                <span class="text-primary">
+                                                                    @(wm.Meaning.MeaningText.Length > 50 ? 
+                                                                      wm.Meaning.MeaningText.Substring(0, 50) + "..." : 
+                                                                      wm.Meaning.MeaningText)
+                                                                </span>
+                                                                @if (!string.IsNullOrEmpty(wm.Meaning.Language))
+                                                                {
+                                                                    <span class="badge badge-sm bg-light text-dark">@wm.Meaning.Language</span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        @if (item.WordMeanings.Count() > 2)
+                                                        {
+                                                            <small class="text-muted">+@(item.WordMeanings.Count() - 2) more...</small>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">No definitions</span>
+                                                }
+                                            </td>
+
+                                            <td>
+                                                <div class="d-flex flex-column gap-1">
+                                                    <!-- Completion Status -->
+                                                    @if (item.ISCompleted == true)
+                                                    {
+                                                        <span class="badge bg-success px-1 py-0" style="font-size: 0.65rem;">
+                                                            <i class="bi bi-check"></i> Complete
+                                                        </span>
+                                                    }
+                                                    else if (item.ISCompleted == false)
+                                                    {
+                                                        <span class="badge bg-danger px-1 py-0" style="font-size: 0.65rem;">
+                                                            <i class="bi bi-x"></i> Incomplete
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary px-1 py-0" style="font-size: 0.65rem;">
+                                                            <i class="bi bi-question"></i> Unknown
+                                                        </span>
+                                                    }
+
+                                                    <!-- Review Status -->
+                                                    <div class="d-flex gap-1">
+                                                        @if (item.Review1 == true)
+                                                        {
+                                                            <span class="badge bg-success px-1 py-0" style="font-size: 0.6rem;" title="Review 1 Passed">R1✓</span>
+                                                        }
+                                                        else if (item.Review1 == false)
+                                                        {
+                                                            <span class="badge bg-danger px-1 py-0" style="font-size: 0.6rem;" title="Review 1 Failed">R1✗</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary px-1 py-0" style="font-size: 0.6rem;" title="Review 1 Pending">R1?</span>
+                                                        }
+
+                                                        @if (item.Review2 == true)
+                                                        {
+                                                            <span class="badge bg-success px-1 py-0" style="font-size: 0.6rem;" title="Review 2 Passed">R2✓</span>
+                                                        }
+                                                        else if (item.Review2 == false)
+                                                        {
+                                                            <span class="badge bg-danger px-1 py-0" style="font-size: 0.6rem;" title="Review 2 Failed">R2✗</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary px-1 py-0" style="font-size: 0.6rem;" title="Review 2 Pending">R2?</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(item.Pronunciation))
+                                                {
+                                                    <i class="bi bi-volume-up text-success" title="Has pronunciation"></i>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+
+                                            <td>
+                                                @if (item.RootID != null && item.Root != null)
+                                                {
+                                                    <div class="small">
+                                                        <span class="fw-semibold">@Html.DisplayFor(modelItem => item.Root.Word_text)</span>
+                                                        <span class="text-muted">(@item.Root.Class)</span>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">No root</span>
+                                                }
+                                            </td>
+                                            
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a asp-action="Details" 
+                                                       asp-route-id="@item.WordId" 
+                                                       class="btn btn-sm btn-outline-info"
+                                                       title="View Details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a asp-action="Edit" 
+                                                       asp-route-id="@item.WordId" 
+                                                       class="btn btn-sm btn-outline-warning"
+                                                       title="Edit Word">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a asp-action="Delete" 
+                                                       asp-route-id="@item.WordId" 
+                                                       class="btn btn-sm btn-outline-danger"
+                                                       title="Delete Word">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (Model.TotalPages > 1)
+                        {
+                            <div class="card-footer bg-light">
+                                <nav aria-label="Search results pagination">
+                                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                                        <!-- First page -->
+                                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                            <a class="page-link" 
+                                               href="@Url.Action("Index", new { 
+                                                   search = ViewBag.SearchText, 
+                                                   searchType = ViewBag.SearchType, 
+                                                   filterType = ViewBag.FilterType,
+                                                   completionFilter = ViewBag.CompletionFilter,
+                                                   review1Filter = ViewBag.Review1Filter,
+                                                   review2Filter = ViewBag.Review2Filter,
+                                                   showCopticOnly = ViewBag.ShowCopticOnly,
+                                                   pageSize = ViewBag.PageSize,
+                                                   page = 1 
+                                               })">
+                                                <i class="bi bi-chevron-double-left"></i>
+                                            </a>
+                                        </li>
+
+                                        <!-- Previous page -->
+                                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                            <a class="page-link" 
+                                               href="@Url.Action("Index", new { 
+                                                   search = ViewBag.SearchText, 
+                                                   searchType = ViewBag.SearchType, 
+                                                   filterType = ViewBag.FilterType,
+                                                   completionFilter = ViewBag.CompletionFilter,
+                                                   review1Filter = ViewBag.Review1Filter,
+                                                   review2Filter = ViewBag.Review2Filter,
+                                                   showCopticOnly = ViewBag.ShowCopticOnly,
+                                                   pageSize = ViewBag.PageSize,
+                                                   page = Model.CurrentPage - 1 
+                                               })">
+                                                <i class="bi bi-chevron-left"></i>
+                                            </a>
+                                        </li>
+
+                                        <!-- Page numbers -->
+                                        @{
+                                            var startPage = Math.Max(1, Model.CurrentPage - 2);
+                                            var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                                        }
+
+                                        @if (startPage > 1)
+                                        {
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        }
+
+                                        @for (var i = startPage; i <= endPage; i++)
+                                        {
+                                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                                <a class="page-link" 
+                                                   href="@Url.Action("Index", new { 
+                                                       search = ViewBag.SearchText, 
+                                                       searchType = ViewBag.SearchType, 
+                                                       filterType = ViewBag.FilterType,
+                                                       completionFilter = ViewBag.CompletionFilter,
+                                                       review1Filter = ViewBag.Review1Filter,
+                                                       review2Filter = ViewBag.Review2Filter,
+                                                       showCopticOnly = ViewBag.ShowCopticOnly,
+                                                       pageSize = ViewBag.PageSize,
+                                                       page = i 
+                                                   })">
+                                                    @i
+                                                </a>
+                                            </li>
+                                        }
+
+                                        @if (endPage < Model.TotalPages)
+                                        {
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        }
+
+                                        <!-- Next page -->
+                                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                            <a class="page-link" 
+                                               href="@Url.Action("Index", new { 
+                                                   search = ViewBag.SearchText, 
+                                                   searchType = ViewBag.SearchType, 
+                                                   filterType = ViewBag.FilterType,
+                                                   completionFilter = ViewBag.CompletionFilter,
+                                                   review1Filter = ViewBag.Review1Filter,
+                                                   review2Filter = ViewBag.Review2Filter,
+                                                   showCopticOnly = ViewBag.ShowCopticOnly,
+                                                   pageSize = ViewBag.PageSize,
+                                                   page = Model.CurrentPage + 1 
+                                               })">
+                                                <i class="bi bi-chevron-right"></i>
+                                            </a>
+                                        </li>
+
+                                        <!-- Last page -->
+                                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                            <a class="page-link" 
+                                               href="@Url.Action("Index", new { 
+                                                   search = ViewBag.SearchText, 
+                                                   searchType = ViewBag.SearchType, 
+                                                   filterType = ViewBag.FilterType,
+                                                   completionFilter = ViewBag.CompletionFilter,
+                                                   review1Filter = ViewBag.Review1Filter,
+                                                   review2Filter = ViewBag.Review2Filter,
+                                                   showCopticOnly = ViewBag.ShowCopticOnly,
+                                                   pageSize = ViewBag.PageSize,
+                                                   page = Model.TotalPages 
+                                               })">
+                                                <i class="bi bi-chevron-double-right"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                                
+                                <!-- Pagination info -->
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">
+                                        Page @Model.CurrentPage of @Model.TotalPages 
+                                        (showing @Model.StartItem - @Model.EndItem of @Model.TotalCount results)
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-search display-1 text-muted"></i>
+                            </div>
+                            <h4 class="text-muted">No Words Found</h4>
+                            <p class="text-muted">
+                                @if (!string.IsNullOrEmpty(ViewBag.SearchText as string) || 
+                                     !string.IsNullOrEmpty(ViewBag.CompletionFilter as string) || 
+                                     !string.IsNullOrEmpty(ViewBag.Review1Filter as string) || 
+                                     !string.IsNullOrEmpty(ViewBag.Review2Filter as string) || 
+                                     ViewBag.ShowCopticOnly == true)
+                                {
+                                    <span>No results found with the current filters. Try adjusting your search terms or filter criteria.</span>
+                                }
+                                else
+                                {
+                                    <span>Start by searching for words, applying filters, or <a asp-action="Create" class="text-decoration-none">create a new word</a>.</span>
+                                }
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+    
+    .table th {
+        border: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .table td {
+        border: none;
+        border-bottom: 1px solid #f1f3f4;
+        vertical-align: middle;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table tr:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.01);
+        transition: all 0.2s ease;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        border-radius: 6px;
+    }
+    
+    .badge-sm {
+        font-size: 0.65rem;
+        padding: 0.25em 0.5em;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    }
+    
+    .display-5 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .pagination .page-link {
+        border-radius: 6px;
+        margin: 0 2px;
+        border: none;
+        color: #6c757d;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
+        transform: translateY(-1px);
+    }
+
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+</style>
+
+<script>
+    // Auto-submit form when filter type or search type changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterType = document.querySelector('select[name="filterType"]');
+        const searchType = document.querySelector('select[name="searchType"]');
+        const pageSize = document.querySelector('select[name="pageSize"]');
+        const completionFilter = document.querySelector('select[name="completionFilter"]');
+        const review1Filter = document.querySelector('select[name="review1Filter"]');
+        const review2Filter = document.querySelector('select[name="review2Filter"]');
+        const showCopticOnly = document.querySelector('input[name="showCopticOnly"]');
+        
+        [filterType, searchType, pageSize, completionFilter, review1Filter, review2Filter, showCopticOnly].forEach(element => {
+            if (element) {
+                element.addEventListener('change', function() {
+                    // Reset to page 1 when changing filters
+                    document.querySelector('input[name="page"]').value = 1;
+                    this.form.submit();
+                });
+            }
+        });
+        
+        // Add search hint for ID format
+        const searchInput = document.querySelector('#search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const value = this.value.toUpperCase();
+                if (value.startsWith('ND-') || value.match(/^\d+$/)) {
+                    // If it looks like an ID search, auto-select exact match
+                    document.querySelector('select[name="searchType"]').value = 'exact';
+                    document.querySelector('select[name="filterType"]').value = 'word';
+                }
+            });
+        }
+    });
+
+    // Clear all filters function
+    function clearFilters() {
+        const form = document.querySelector('form');
+        
+        // Clear text inputs
+        form.querySelector('input[name="search"]').value = '';
+        
+        // Reset selects to default
+        form.querySelector('select[name="filterType"]').value = 'word';
+        form.querySelector('select[name="searchType"]').value = 'exact';
+        form.querySelector('select[name="completionFilter"]').value = '';
+        form.querySelector('select[name="review1Filter"]').value = '';
+        form.querySelector('select[name="review2Filter"]').value = '';
+        form.querySelector('select[name="pageSize"]').value = '20';
+        
+        // Uncheck checkboxes
+        form.querySelector('input[name="showCopticOnly"]').checked = false;
+        
+        // Reset page
+        form.querySelector('input[name="page"]').value = 1;
+        
+        // Submit form
+        form.submit();
+    }
+</script>
