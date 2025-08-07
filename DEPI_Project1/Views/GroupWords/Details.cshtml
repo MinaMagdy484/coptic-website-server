@@ -45,6 +45,118 @@
         </dd>
     </dl>
 </div>
+<!-- Add this section after the Group Information section in GroupWords Details.cshtml -->
+<!-- Group Completion Status -->
+<div class="mt-4">
+    <div class="card border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-check-circle"></i> Group Actions - Update All Words
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong><i class="bi bi-info-circle"></i> Bulk Update:</strong> 
+                Use these controls to update all @(Model.Words?.Count ?? 0) words in this group at once.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card border-primary h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">Completion Status</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            @if (User.IsInRole("Instructor") || User.IsInRole("Admin"))
+                            {
+                                <div class="btn-group-vertical w-100">
+                                    <button type="button" class="btn btn-success btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'ISCompleted', true)">
+                                        <i class="bi bi-check-circle"></i> Mark All as Complete
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'ISCompleted', false)">
+                                        <i class="bi bi-x-circle"></i> Mark All as Incomplete
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'ISCompleted', null)">
+                                        <i class="bi bi-question-circle"></i> Mark All as Unknown
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Instructor/Admin access required</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card border-warning h-100">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">Review 1 Status</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <div class="btn-group-vertical w-100">
+                                    <button type="button" class="btn btn-success btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review1', true)">
+                                        <i class="bi bi-check-circle"></i> Mark All as Passed
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review1', false)">
+                                        <i class="bi bi-x-circle"></i> Mark All as Failed
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review1', null)">
+                                        <i class="bi bi-question-circle"></i> Mark All as Pending
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Admin access required</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card border-info h-100">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">Review 2 Status</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <div class="btn-group-vertical w-100">
+                                    <button type="button" class="btn btn-success btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review2', true)">
+                                        <i class="bi bi-check-circle"></i> Mark All as Passed
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm mb-2" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review2', false)">
+                                        <i class="bi bi-x-circle"></i> Mark All as Failed
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                            onclick="updateGroupCompletionStatus(@Model.ID, 'Review2', null)">
+                                        <i class="bi bi-question-circle"></i> Mark All as Pending
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Admin access required</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="mt-4">
     <div class="card">
@@ -737,5 +849,98 @@
                 form.submit();
             }
         }
+
+        function updateGroupCompletionStatus(groupId, fieldName, value) {
+            // Show confirmation dialog
+            const wordCount = @(Model.Words?.Count ?? 0);
+            const actionText = value === true ? 'complete' : value === false ? 'incomplete' : 'unknown';
+            const fieldText = fieldName === 'ISCompleted' ? 'completion status' : fieldName === 'Review1' ? 'Review 1 status' : 'Review 2 status';
+            
+            if (!confirm(`Are you sure you want to mark all ${wordCount} words in this group as ${actionText} for ${fieldText}?`)) {
+                return;
+            }
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || 
+                         document.querySelector('[name="__RequestVerificationToken"]')?.value;
+            
+            if (!token) {
+                alert('Security token not found. Please refresh the page and try again.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('groupId', groupId);
+            formData.append('fieldName', fieldName);
+            formData.append('value', value === null ? '' : value.toString());
+            formData.append('__RequestVerificationToken', token);
+
+            // Show loading indicator
+            showNotification('Updating all words in group...', 'info');
+
+            fetch('/GroupWords/UpdateGroupCompletionStatus', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Successfully updated ${data.updatedWordsCount || wordCount} words!`, 'success');
+                    
+                    // Optionally reload the page to reflect changes
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showNotification('Error updating status: ' + (data.message || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error updating group status', 'danger');
+            });
+        }
+
+        // Function to show notifications
+        function showNotification(message, type) {
+            // Remove existing notifications
+            const existingAlerts = document.querySelectorAll('.notification-alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed notification-alert`;
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds (except for info messages during loading)
+            if (type !== 'info') {
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 5000);
+            }
+        }
+
+        // Add anti-forgery token if not present
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!document.querySelector('input[name="__RequestVerificationToken"]')) {
+                const form = document.createElement('form');
+                form.style.display = 'none';
+                form.innerHTML = '@Html.AntiForgeryToken()';
+                document.body.appendChild(form);
+            }
+        });
     </script>
 }

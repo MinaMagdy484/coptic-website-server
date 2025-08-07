@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Identity;
 using System.Security.Cryptography;
 using System;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 // --------------------------- 6/10
 namespace DEPI_Project1.Controllers
 {

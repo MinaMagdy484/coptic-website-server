@@ -1,0 +1,64 @@
+@model dynamic
+
+<h2>Debug: Words in Group</h2>
+
+<div class="alert alert-info">
+    <h5>Debug Information:</h5>
+    <ul>
+        <li><strong>Group ID:</strong> @ViewBag.GroupId</li>
+        <li><strong>Word Class:</strong> @ViewBag.WordClass</li>
+        <li><strong>Class to Match:</strong> @ViewBag.ClassToMatch</li>
+        <li><strong>Total Words in Group:</strong> @ViewBag.TotalWordsInGroup</li>
+        <li><strong>Matching Words:</strong> @ViewBag.MatchingWords</li>
+    </ul>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>All Words in Group (@ViewBag.TotalWordsInGroup)</h4>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Word ID</th>
+                    <th>Text</th>
+                    <th>Class</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var word in ViewBag.AllWords)
+                {
+                    <tr>
+                        <td>@word.WordId</td>
+                        <td>@word.Word_text</td>
+                        <td>@(word.Class ?? "NULL")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="col-md-6">
+        <h4>Filtered Words (@ViewBag.MatchingWords)</h4>
+        <table class="table table-sm table-success">
+            <thead>
+                <tr>
+                    <th>Word ID</th>
+                    <th>Text</th>
+                    <th>Class</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var word in ViewBag.FilteredWords)
+                {
+                    <tr>
+                        <td>@word.WordId</td>
+                        <td>@word.Word_text</td>
+                        <td>@(word.Class ?? "NULL")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a href="@Url.Action("Details", new { id = ViewBag.GroupId })" class="btn btn-secondary">Back to Group</a>

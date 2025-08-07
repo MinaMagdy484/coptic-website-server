@@ -1164,6 +1164,7 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
         }
 
         // Separate method to load word meanings efficiently
+        // Separate method to load word meanings efficiently
         private async Task<List<WordMeaning>> LoadWordMeaningsOptimized(int wordId)
         {
             // First, get the basic word meanings
@@ -1197,13 +1198,14 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
                 .ToListAsync();
 
             var meaningIds = wordMeanings.Select(wm => wm.MeaningID).ToList();
+            var wordMeaningIds = wordMeanings.Select(wm => wm.ID).ToList();
 
             if (meaningIds.Any())
             {
-                // Load child meanings
+                // Load child meanings - Fixed nullable issue
                 var childMeanings = await _context.Meanings
                     .AsNoTracking()
-                    .Where(m => meaningIds.Contains(m.ParentMeaningID.Value))
+                    .Where(m => m.ParentMeaningID.HasValue && meaningIds.Contains(m.ParentMeaningID.Value))
                     .Select(m => new Meaning
                     {
                         ID = m.ID,
@@ -1237,10 +1239,12 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
                     })
                     .ToListAsync();
 
-                // Load examples
-                var examples = await _context.Examples
+                // Load ALL examples for this word's meanings (both parent and child examples) - Fixed nullable issue
+                var allExamples = await _context.Examples
                     .AsNoTracking()
-                    .Where(e => e.WordMeaning.WordID == wordId)
+                    .Where(e => e.WordMeaningID.HasValue && wordMeaningIds.Contains(e.WordMeaningID.Value) ||
+                               (e.ParentExampleID.HasValue &&
+                                _context.Examples.Any(pe => pe.WordMeaningID.HasValue && wordMeaningIds.Contains(pe.WordMeaningID.Value) && pe.ID == e.ParentExampleID.Value)))
                     .Select(e => new Example
                     {
                         ID = e.ID,
@@ -1254,14 +1258,15 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
                         CreatedAt = e.CreatedAt,
                         ModifiedAt = e.ModifiedAt,
                         CreatedByUserId = e.CreatedByUserId ?? "",
-                        ModifiedByUserId = e.ModifiedByUserId ?? ""
+                        ModifiedByUserId = e.ModifiedByUserId ?? "",
+                        ChildExamples = new List<Example>() // Initialize empty collection
                     })
                     .ToListAsync();
 
                 // Load Bible references
                 var bibleReferences = await _context.WordMeaningBibles
                     .AsNoTracking()
-                    .Where(wmb => meaningIds.Contains(wmb.WordMeaning.MeaningID))
+                    .Where(wmb => wordMeaningIds.Contains(wmb.WordMeaningID))
                     .Select(wmb => new WordMeaningBible
                     {
                         ID = wmb.ID,
@@ -1297,21 +1302,32 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
                         .Where(rwm => rwm.MeaningID == wm.MeaningID)
                         .ToList();
 
-                    // Assign examples and child examples
-                    var parentExamples = examples.Where(e => e.WordMeaningID == wm.ID && !e.ParentExampleID.HasValue).ToList();
-                    foreach (var example in parentExamples)
+                    // Get parent examples for this specific word meaning
+                    var parentExamples = allExamples
+                        .Where(e => e.WordMeaningID == wm.ID && !e.ParentExampleID.HasValue)
+                        .ToList();
+
+                    // Assign child examples to each parent example
+                    foreach (var parentExample in parentExamples)
                     {
-                        example.ChildExamples = examples.Where(e => e.ParentExampleID == example.ID).ToList();
+                        parentExample.ChildExamples = allExamples
+                            .Where(e => e.ParentExampleID.HasValue && e.ParentExampleID.Value == parentExample.ID)
+                            .ToList();
                     }
+
                     wm.Examples = parentExamples;
 
                     // Assign Bible references
-                    wm.WordMeaningBibles = bibleReferences.Where(br => br.WordMeaningID == wm.ID).ToList();
+                    wm.WordMeaningBibles = bibleReferences
+                        .Where(br => br.WordMeaningID == wm.ID)
+                        .ToList();
                 }
             }
 
             return wordMeanings;
         }
+
+
 
         // Load user information efficiently
         private async Task LoadUserInformation(Word word)
@@ -1560,28 +1576,38 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
         private List<SelectListItem> GetLanguagesList()
         {
             return new List<SelectListItem>
-                {
-                    new SelectListItem { Value = "AR", Text = "Arabic" },
-                    new SelectListItem { Value = "FR", Text = "French" },
-                    new SelectListItem { Value = "EN", Text = "English" },
-                    new SelectListItem { Value = "RU", Text = "Russian" },
-                    new SelectListItem { Value = "DE", Text = "German" },
-                    new SelectListItem { Value = "IT", Text = "Italian" },
-                    new SelectListItem { Value = "HE", Text = "Hebrew" },
-                    new SelectListItem { Value = "GR", Text = "Greek" },
-                    new SelectListItem { Value = "ARC", Text = "Aramaic" },
-                    new SelectListItem { Value = "EG",  Text = "Egyptian" },
-                    new SelectListItem { Value = "C-B" , Text = "Coptic - B" },
-                    new SelectListItem { Value = "C-S",  Text = "Coptic - S" },
-                    new SelectListItem { Value = "C-Sa", Text = "Coptic - Sa" },
-                    new SelectListItem { Value = "C-Sf", Text = "Coptic - Sf" },
-                    new SelectListItem { Value = "C-A",  Text = "Coptic - A" },
-                    new SelectListItem { Value = "C-sA", Text = "Coptic - sA" },
-                    new SelectListItem { Value = "C-F",  Text = "Coptic - F" },
-                    new SelectListItem { Value = "C-Fb", Text = "Coptic - Fb" },
-                    new SelectListItem { Value = "C-O",  Text = "Coptic - O" },
-                    new SelectListItem { Value = "C-NH", Text = "Coptic - NH" }
-                };
+            {
+                new SelectListItem { Value = "AR", Text = "Arabic - العربي" },
+                new SelectListItem { Value = "FR", Text = "French" },
+                new SelectListItem { Value = "EN", Text = "English" },
+                new SelectListItem { Value = "RU", Text = "Russian" },
+                new SelectListItem { Value = "DE", Text = "German" },
+                new SelectListItem { Value = "IT", Text = "Italian" },
+                new SelectListItem { Value = "HE", Text = "Hebrew" },
+                new SelectListItem { Value = "GR", Text = "Greek" },
+                new SelectListItem { Value = "ARC", Text = "Aramaic" },
+                new SelectListItem { Value = "EG",  Text = "Egyptian" },
+                new SelectListItem { Value = "C-B" , Text = "Bohairic - ⲣⲉⲙⲉϩⲓⲧ - بحيري" },
+                new SelectListItem { Value = "C-S",  Text = "Sahidic - ⲣⲉⲙⲣⲏⲥ - صعيدي" },
+                new SelectListItem { Value = "C-Sa", Text = "Sahidic with Akhmimic tendency - صعيدي أخميمي" },
+                new SelectListItem { Value = "C-Sf", Text = "Sahidic with Fayyumic tendency - صعيدي فيومي" },
+                new SelectListItem { Value = "C-A",  Text = "Akhmimic - ⲣⲉⲙϣ̀ⲙⲓⲛ - اخميمي" },
+                new SelectListItem { Value = "C-AK", Text = "Old Coptic - القبطية القديمة" },
+                new SelectListItem { Value = "C-F",  Text = "Fayyumic - ⲣⲉⲙⲫ̀ⲓⲟⲙ - فيومي" },
+                new SelectListItem { Value = "C-Fb", Text = "Fayyumic with Bohairic tendency - فيومي بحيري" },
+                new SelectListItem { Value = "C-M",  Text = "Mesokemic - الميسوكيـمية" },
+                new SelectListItem { Value = "C-L",  Text = "Lycopolitan - أسيوطي" },
+                new SelectListItem { Value = "C-P",  Text = "Proto-Theban - ما قبل الطيبية" },
+                new SelectListItem { Value = "C-V",  Text = "South Fayyumic Greek - يوناني فيومي جنوبي" },
+                new SelectListItem { Value = "C-W",  Text = "Crypto-Mesokemic Greek - يوناني ميسوكيمي" },
+                new SelectListItem { Value = "C-NH", Text = "Nag Hammadi - نجع حمادي" },
+                new SelectListItem { Value = "C-O",  Text = "Coptic - O" },
+                new SelectListItem { Value = "C-U",    Text = "Greek (usage unclear) - يوناني (غير واضح الاستخدام)" },
+                new SelectListItem { Value = "C-G",    Text = "Greek - ⲙⲉⲧⲟⲩⲉⲓⲛⲓⲛ - يوناني" },
+                new SelectListItem { Value = "C-Heb",  Text = "Hebrew - ⲙⲉⲧϩⲉⲃⲣⲉⲟⲩⲥ - عبري" },
+                new SelectListItem { Value = "C-Aram", Text = "Aramaic - ⲙⲉⲧⲁⲣⲁⲙⲓⲁⲥ - آرامي" },
+                new SelectListItem { Value = "C-Ar",   Text = "Arabic - ⲙⲉⲧⲁⲣⲁⲃⲏⲥ - عربي" }
+            };
         }
 
         private string GetLanguageDisplayName(string languageCode)
@@ -1593,44 +1619,73 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
         private List<SelectListItem> GetPartOfSpeechList()
         {
             return new List<SelectListItem>
-                {
-    new SelectListItem { Value = "ⲡ", Text = "Masculine (noun) - اسم مذكر " },
-    new SelectListItem { Value = "ⲧ", Text = "Feminine (noun) - اسم مؤنث" },
-    new SelectListItem { Value = "ⲛ", Text = "Plural (noun) - اسم جمع" },
-    new SelectListItem { Value = "ⲟⲩ", Text = "Indefinite noun - اسم غير محدد" },
-    new SelectListItem { Value = "ⲣⲁ", Text = "Verb (absolute state) - فعل (صيغة كاملة)" },
-    new SelectListItem { Value = "ⲣⲁ-", Text = "Verb (prenominal state) - فعل (صيغة ناقصة)" },
-    new SelectListItem { Value = "ⲣⲁ˶", Text = "Verb (prepersona state) - فعل (صيغة ضميرية)" },
-    new SelectListItem { Value = "ⲉϥ", Text = "Verb (stative state) - فعل (صيغة وصفية)" },
-    new SelectListItem { Value = "ⲣⲁϩ",  Text = "Verb (imperative) - فعل (صيغة أمر)" },
-    new SelectListItem { Value = "ⲥ" , Text = "adjective - صفة" },
-    new SelectListItem { Value = "ⲡ,ⲧ",  Text = "Masculine or Feminine (noun) - اسم مذكر او مؤنث" },
-    new SelectListItem { Value = "ϭⲱⲣ", Text = "Demonstrative pronoun - اسم اشارة" },
-    new SelectListItem { Value = "ⲡⲧⲙ", Text = "Relative pronoun - اسم موصول" },
-    new SelectListItem { Value = "ϣⲓⲛ",  Text = "interrogative adverb - أداة استفهام" },
-    new SelectListItem { Value = "ϣ", Text = "Letter - حرف"  },
-    new SelectListItem { Value = "ϣⲣ",  Text = "Conjunction -  حرف عطف" },
-    new SelectListItem { Value = "ϣⲥ", Text = "Preposition - حرف جر" },
-    new SelectListItem { Value = "ϣϫ",  Text = "negative particle - حرف نفى" },
-    new SelectListItem { Value = "ϣⲙ", Text = "direct address marker - حرف نداء" },
-    new SelectListItem { Value = "ϣⲃⲣ", Text = "Pronoun - ضمير" },
-    new SelectListItem { Value = "ϣⲥⲃ", Text = "Indefinite pronoun - ضمير نكرة" },
-    new SelectListItem { Value = "ϣⲁⲫ", Text = "Detached possessive pronoun - ضمير ملكية منفصل" },
-    new SelectListItem { Value = "ϣⲁⲧ", Text = "Attached possessive pronoun - ضمير ملكية متصل" },
-    new SelectListItem { Value = "ϣⲟⲫ", Text = "Detached personal pronoun - ضمير شخصى منفصل" },
-    new SelectListItem { Value = "ϣⲟⲧ", Text = "Attached personal pronoun - ضمير شخصى متصل" },
-    new SelectListItem { Value = "ϣⲡ", Text = "First person - ضمير المتكلم" },
-    new SelectListItem { Value = "ϣⲡⲛ", Text = "Second person - ضمير المخاطب" },
-    new SelectListItem { Value = "ϣⲡⲥ", Text = "Third person - ضمير الغائب" },
-    new SelectListItem { Value = "ϣⲛ", Text = "First person plural - ضمير المتكلمين" },
-    new SelectListItem { Value = "ϣⲛⲛ", Text = "Second person plural - ضمير المخاطبين" },
-    new SelectListItem { Value = "ϣⲛⲥ", Text = "Third person plural - ضمير الغائبين" },
-    new SelectListItem { Value = "ⲙⲣ", Text = "Adverb - ظرف" },
-    new SelectListItem { Value = "ⲙⲣⲥ", Text = "Adverb of time - ظرف زمان" },
-    new SelectListItem { Value = "ⲙⲣⲙ", Text = "Adverb of place - ظرف مكان" },
-    new SelectListItem { Value = "ϫϣ", Text = "interjection - صيغة تعجب ، ملاحظة إعتراضية" },
-    new SelectListItem { Value = "ⲏⲡⲓ", Text = "Number - عدد" }
-};
+            {
+                new SelectListItem { Value = "ⲡ", Text = "Masculine (noun) - اسم مذكر " },
+                new SelectListItem { Value = "ⲧ", Text = "Feminine (noun) - اسم مؤنث" },
+                new SelectListItem { Value = "ⲛ", Text = "Plural (noun) - اسم جمع" },
+                new SelectListItem { Value = "ⲟⲩ", Text = "Indefinite noun - اسم غير محدد" },
+                new SelectListItem { Value = "ⲣⲁ", Text = "Verb (absolute state) - فعل (صيغة كاملة)" },
+                new SelectListItem { Value = "ⲣⲁ-", Text = "Verb (prenominal state) - فعل (صيغة ناقصة)" },
+                new SelectListItem { Value = "ⲣⲁ˶", Text = "Verb (prepersona state) - فعل (صيغة ضميرية)" },
+                new SelectListItem { Value = "ⲉϥ", Text = "Verb (stative state) - فعل (صيغة وصفية)" },
+                new SelectListItem { Value = "ⲣⲁϩ", Text = "Verb (imperative) - فعل (صيغة أمر)" },
+                new SelectListItem { Value = "ⲥ", Text = "adjective - صفة" },
+                new SelectListItem { Value = "ⲡ,ⲧ", Text = "Masculine or Feminine (noun) - اسم مذكر او مؤنث" },
+                new SelectListItem { Value = "ϭⲱⲣ", Text = "Demonstrative pronoun - اسم اشارة" },
+                new SelectListItem { Value = "ⲡⲧⲙ", Text = "Relative pronoun - اسم موصول" },
+                new SelectListItem { Value = "ϣⲓⲛ", Text = "interrogative adverb - أداة استفهام" },
+                new SelectListItem { Value = "ϣ", Text = "Letter - حرف" },
+                new SelectListItem { Value = "ϣⲣ", Text = "Conjunction -  حرف عطف" },
+                new SelectListItem { Value = "ϣⲥ", Text = "Preposition - حرف جر" },
+                new SelectListItem { Value = "ϣϫ", Text = "negative particle - حرف نفى" },
+                new SelectListItem { Value = "ϣⲙ", Text = "direct address marker - حرف نداء" },
+                new SelectListItem { Value = "ϣⲃⲣ", Text = "Pronoun - ضمير" },
+                new SelectListItem { Value = "ϣⲥⲃ", Text = "Indefinite pronoun - ضمير نكرة" },
+                new SelectListItem { Value = "ϣⲁⲫ", Text = "Detached possessive pronoun - ضمير ملكية منفصل" },
+                new SelectListItem { Value = "ϣⲁⲧ", Text = "Attached possessive pronoun - ضمير ملكية متصل" },
+                new SelectListItem { Value = "ϣⲟⲫ", Text = "Detached personal pronoun - ضمير شخصى منفصل" },
+                new SelectListItem { Value = "ϣⲟⲧ", Text = "Attached personal pronoun - ضمير شخصى متصل" },
+                new SelectListItem { Value = "ϣⲡ", Text = "First person - ضمير المتكلم" },
+                new SelectListItem { Value = "ϣⲡⲛ", Text = "Second person - ضمير المخاطب" },
+                new SelectListItem { Value = "ϣⲡⲥ", Text = "Third person - ضمير الغائب" },
+                new SelectListItem { Value = "ϣⲛ", Text = "First person plural - ضمير المتكلمين" },
+                new SelectListItem { Value = "ϣⲛⲛ", Text = "Second person plural - ضمير المخاطبين" },
+                new SelectListItem { Value = "ϣⲛⲥ", Text = "Third person plural - ضمير الغائبين" },
+                new SelectListItem { Value = "ⲙⲣ", Text = "Adverb - ظرف" },
+                new SelectListItem { Value = "ⲙⲣⲥ", Text = "Adverb of time - ظرف زمان" },
+                new SelectListItem { Value = "ⲙⲣⲙ", Text = "Adverb of place - ظرف مكان" },
+                new SelectListItem { Value = "ϫϣ", Text = "interjection - صيغة تعجب ، ملاحظة إعتراضية" },
+                new SelectListItem { Value = "ⲏⲡⲓ", Text = "Number - عدد" },
+                // New items from the provided list
+                new SelectListItem { Value = "ⲣ", Text = "Name - اسم علم" },
+                new SelectListItem { Value = "ⲣ-", Text = "Noun (Compound state) - اسم (صيغة مركبة)" },
+                new SelectListItem { Value = "ⲣ˶", Text = "Noun (prepersona state) - اسم (صيغة ضميرية)" },
+                new SelectListItem { Value = "ⲣⲛ", Text = "Derived noun - اسم مشتق" },
+                new SelectListItem { Value = "ⲣⲁϩ-", Text = "Imperative Verb (prenominal state) - فعل أمر (صيغة ناقصة)" },
+                new SelectListItem { Value = "ⲣⲁϩ⸗", Text = "Imperative Verb (prepersona state) - فعل أمر (صيغة ضميرية)" },
+                new SelectListItem { Value = "ⲣⲁϩ (ⲡ)", Text = "Imperative Verb (Masculine) - فعل أمر (مفرد مذكر)" },
+                new SelectListItem { Value = "ⲣⲁϩ (ⲧ)", Text = "Imperative Verb (Feminine) - فعل أمر (مفرد مؤنث)" },
+                new SelectListItem { Value = "ⲣⲁϩ (ⲛ)", Text = "Imperative Verb (Plural) - فعل أمر (جمع)" },
+                new SelectListItem { Value = "ⲣⲁⲃ", Text = "Derived verb - فعل مشتق" },
+                new SelectListItem { Value = "ⲣⲁϫ", Text = "Compound verb - فعل مركب" },
+                new SelectListItem { Value = "ϩⲏ", Text = "Prefix - بادئة" },
+                new SelectListItem { Value = "ⲙϧ", Text = "Suffix - لاحقة" },
+                new SelectListItem { Value = "ϩⲣ", Text = "Nominal prefix - بادئة اسمية" },
+                new SelectListItem { Value = "ϩⲣⲁ", Text = "Verbal prefix - بادئة فعلية" },
+                new SelectListItem { Value = "ϩⲣⲁϩ", Text = "prefix of imperative - بادئة الأمر" },
+                new SelectListItem { Value = "ϩⲣⲧϩ", Text = "prefix of neg. Imperative - بادئة النفي للأمر" },
+                new SelectListItem { Value = "ⲉⲧ", Text = "Conjunction - أداة ربط" },
+                new SelectListItem { Value = "ⲉⲥ", Text = "Definite Article - أداة تعريف" },
+                new SelectListItem { Value = "ⲉⲧⲥ", Text = "Indefinite Article - أداة تنكير" },
+                new SelectListItem { Value = "ⲥϩ", Text = "Adjective (Masculine) - صفة (مذكر)" },
+                new SelectListItem { Value = "ⲥⲥ", Text = "Adjective (Feminine) - صفة (مؤنث)" },
+                new SelectListItem { Value = "ⲥⲙ", Text = "Adjective (Plural) - صفة (جمع)" },
+                new SelectListItem { Value = "ϣⲥ-", Text = "Preposition (Compound state) - حرف جر (صيغة مركبة)" },
+                new SelectListItem { Value = "ϣⲥ⸗", Text = "Preposition (prepersona state) - حرف جر (صيغة ضميرية)" },
+                new SelectListItem { Value = "ⲥⲁⲧ", Text = "Attached possessive adjective - صفة ملكية متصلة" },
+                new SelectListItem { Value = "ⲏⲡϩ", Text = "Number (Masculine) - عدد (مذكر)" },
+                new SelectListItem { Value = "ⲏⲡⲥ", Text = "Number (Feminine) - عدد (مؤنث)" }
+            };
         }
 
 
@@ -2289,21 +2344,26 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
 
         public async Task<IActionResult> EditChildExample(int? id)
         {
+            TempData["ReturnUrl"] = Request.Headers["Referer"].ToString();
+
             if (id == null)
             {
-                return NotFound();
+            return NotFound();
             }
 
-            // Retrieve the example from the database
-            var example = await _context.Examples.FindAsync(id);
+            // Retrieve the example from the database with WordMeaning included
+            var example = await _context.Examples
+            .Include(e => e.WordMeaning)
+            .FirstOrDefaultAsync(e => e.ID == id);
+            
             if (example == null)
             {
-                return NotFound();
+            return NotFound();
             }
 
             // Pass the WordMeaningId, WordId, and Language to the view
             ViewBag.WordMeaningId = example.WordMeaningID;
-            ViewBag.WordId = example.WordMeaning?.WordID; // Assuming WordMeaning has a WordID property
+            ViewBag.WordId = example.WordMeaning?.WordID;
             ViewBag.Language = example.Language;
             ViewData["Languages"] = new SelectList(GetLanguagesList(), "Value", "Text");
 
@@ -2316,36 +2376,44 @@ public async Task<IActionResult> UpdateCompletionStatus(int wordId, string field
         {
             if (id != example.ID)
             {
-                return NotFound();
+            return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                try
+            try
+            {
+                // Update the example in the database
+                _context.Update(example);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ExampleExists(example.ID))
                 {
-                    // Update the example in the database
-                    _context.Update(example);
-                    await _context.SaveChangesAsync();
+                return NotFound();
                 }
-                catch (DbUpdateConcurrencyException)
+                else
                 {
-                    if (!ExampleExists(example.ID))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                throw;
                 }
+            }
 
-                // Redirect back to the Word details page
-                return RedirectToAction("Details", "Words", new { id = example.WordMeaning?.WordID });
+            
+                return RedirectToAction("Details", "Words", new { id = id });
+            
+
+            // Fallback: try to use the return URL
+            var returnUrl = TempData["ReturnUrl"] as string;
+            if (!string.IsNullOrEmpty(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             }
 
             // If the model state is invalid, pass the WordMeaningId, WordId, and Language again
             ViewBag.WordMeaningId = example.WordMeaningID;
-            ViewBag.WordId = example.WordMeaning?.WordID; // Assuming WordMeaning has a WordID property
+            ViewBag.WordId = example.WordMeaning?.WordID;
             ViewBag.Language = example.Language;
             ViewData["Languages"] = new SelectList(GetLanguagesList(), "Value", "Text");
 
